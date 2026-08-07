@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistemas TI - Control de Café ☕</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #1e1e2e; color: #cdd6f4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #2b2b3b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 480px; text-align: center; border: 1px solid #45475a; }
+        h1 { color: #f9e2af; font-size: 24px; margin-bottom: 5px; }
+        p.sub { color: #a6adc8; font-size: 14px; margin-bottom: 20px; }
+        .rotation-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .member { background: #313244; padding: 12px 16px; border-radius: 8px; border: 1px solid #45475a; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .member.active { border: 2px solid #a6e3a1; background: #45475a; }
+        .badge { background: #89b4fa; color: #11111b; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+        .badge.current { background: #a6e3a1; font-weight: bold; }
+        .btn-action { background: #fab387; color: #11111b; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-action:hover { background: #f9e2af; }
+        .btn-secondary { background: #45475a; color: #cdd6f4; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-notify { background: #89b4fa; color: #11111b; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
+        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #181825; border: 1px solid #a6e3a1; margin-bottom: 15px; }
+        .result-box h2 { color: #a6e3a1; margin: 0 0 5px 0; font-size: 22px; }
+        .result-box p { margin: 0; color: #bac2de; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>☕ Rotación de Café - TI</h1>
+    <p class="sub">Turnos fijos secuenciales</p>
+
+    <div class="result-box">
+        <p>Hoy le toca invitar a:</p>
+        <h2 id="todayResponsable">Cargando...</h2>
+        <p id="todayDate" style="color: #6c7086; font-size: 12px; margin-top: 5px;"></p>
+    </div>
+
+    <button class="btn-notify" onclick="solicitarNotificaciones()">🔔 Activar Notificaciones de Windows</button>
+
+    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de la Rueda (4 Integrantes):</h3>
+    <div class="rotation-list" id="rotationContainer"></div>
+
+    <button class="btn-action" onclick="avanzarTurno()">✅ Turno Cumplido (Avanzar al siguiente)</button>
+    <button class="btn-secondary" onclick="saltarTurno()">⏭️ Saltar persona por ausencia</button>
+</div>
+
+<script>
+    const integrantesIniciales = ["Compañero 1", "Compañero 2", "Compañero 3", "Compañero 4"];
+
+    let equipo = JSON.parse(localStorage.getItem('cafe_equipo_fijo')) || integrantesIniciales;
+    let turnoActual = parseInt(localStorage.getItem('cafe_turno_index')) || 0;
+
+    function render() {
+        const container = document.getElementById('rotationContainer');
+        container.innerHTML = '';
+
+        equipo.forEach((nombre, index) => {
+            const esSuTurno = index === turnoActual;
+            container.innerHTML += `
+                <div class="member ${esSuTurno ? 'active' : ''}">
+                    <span onclick="editarNombre(${index})" style="cursor:pointer;" title="Haz clic para cambiar este nombre">
+                        ${index + 1}. ${nombre} ✏️
+                    </span>
+                    <span class="badge ${esSuTurno ? 'current' : ''}">
+                        ${esSuTurno ? '👉 TURNO HOY' : 'En espera'}
+                    </span>
+                </div>
+            `;
+        });
+
+        document.getElementById('todayResponsable').innerText = equipo[turnoActual];
+        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('es-ES', opcionesFecha);
+
+        localStorage.setItem('cafe_equipo_fijo', JSON.stringify(equipo));
+        localStorage.setItem('cafe_turno_index', turnoActual);
+    }
+
+    function solicitarNotificaciones() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    mostrarNotificacion();
+                } else {
+                    alert("Permiso de notificaciones denegado.");
+                }
+            });
+        } else {
+            alert("Tu navegador no soporta notificaciones de escritorio.");
+        }
+    }
+
+    function mostrarNotificacion() {
+        if (Notification.permission === "granted") {
+            new Notification("☕ Alerta de Café TI", {
+                body: `¡Hoy le toca traer el café a: ${equipo[turnoActual]}!`,
+                icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
+            });
+        }
+    }
+
+    function editarNombre(index) {
+        const nuevoNombre = prompt(`Ingresa el nombre del integrante #${index + 1}:`, equipo[index]);
+        if (nuevoNombre) {
+            equipo[index] = nuevoNombre;
+            render();
+        }
+    }
+
+    function avanzarTurno() {
+        turnoActual = (turnoActual + 1) % equipo.length;
+        render();
+        mostrarNotificacion(); // Dispara la notificación al cambiar de turno
+    }
+
+    function saltarTurno() {
+        if (confirm(`¿Saltar a ${equipo[turnoActual]} por hoy?`)) {
+            avanzarTurno();
+        }
+    }
+
+    render();
+</script>
+
+</body>
+</html>
