@@ -29,7 +29,6 @@
             --danger: #C62828;
             --history-th: #2B2A6B;
             
-            /* Nuevas variables para barra superior limpia */
             --top-bar-bg: rgba(255, 255, 255, 0.85);
             --top-btn-bg: #FFFFFF;
             --top-btn-hover: #F0EFEF;
@@ -52,7 +51,6 @@
             --danger: #E57373;
             --history-th: #33315C;
 
-            /* Variables modo oscuro para barra superior */
             --top-bar-bg: rgba(24, 23, 42, 0.85);
             --top-btn-bg: #23223A;
             --top-btn-hover: #2F2D4E;
@@ -71,7 +69,6 @@
             padding: 20px 15px; 
         }
         
-        /* Barra superior profesional flotante */
         .top-bar { 
             position: fixed;
             top: 15px;
@@ -287,7 +284,6 @@
     <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Tema</button>
 </div>
 
-<!-- Panel de Notificaciones Desplegable -->
 <div class="notif-panel" id="notifPanel">
     <div class="notif-header">
         <span>🔔 Actividad Reciente</span>
@@ -417,7 +413,6 @@
         notificaciones: []
     };
 
-    // Renderizado inmediato local para evitar pantalla en blanco en móviles
     document.addEventListener("DOMContentLoaded", () => {
         const temaGuardado = localStorage.getItem(THEME_KEY) || 'light';
         aplicarTema(temaGuardado);
@@ -500,11 +495,11 @@
                 turnoIndex: data.turnoIndex ?? 0,
                 ultimoEnCumplir: data.ultimoEnCumplir ?? "",
                 ultimaFechaCumplido: data.ultimaFechaCumplido ?? "",
-                gastos: data.gastos ? Object.values(data.gastos) : [],
-                saltosHistorial: data.saltosHistorial ? Object.values(data.saltosHistorial) : [],
+                gastos: data.gastos ? (Array.isArray(data.gastos) ? data.gastos : Object.values(data.gastos)) : [],
+                saltosHistorial: data.saltosHistorial ? (Array.isArray(data.saltosHistorial) ? data.saltosHistorial : Object.values(data.saltosHistorial)) : [],
                 vacaciones: data.vacaciones ?? { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
-                historicoGanadores: data.historicoGanadores ? Object.values(data.historicoGanadores) : [],
-                notificaciones: data.notificaciones ? Object.values(data.notificaciones) : []
+                historicoGanadores: data.historicoGanadores ? (Array.isArray(data.historicoGanadores) ? data.historicoGanadores : Object.values(data.historicoGanadores)) : [],
+                notificaciones: data.notificaciones ? (Array.isArray(data.notificaciones) ? data.notificaciones : Object.values(data.notificaciones)) : []
             };
 
             const hoy = obtenerFechaFormateada(new Date());
@@ -671,7 +666,7 @@
 
     function verificarAjusteVacaciones() {
         let intentos = 0;
-        while (estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
+        while (estado.vacaciones && estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             intentos++;
         }
@@ -780,7 +775,7 @@
         if (!historyBody) return;
         historyBody.innerHTML = '';
 
-        if (estado.gastos) {
+        if (Array.isArray(estado.gastos)) {
             for (let i = estado.gastos.length - 1; i >= 0; i--) {
                 const g = estado.gastos[i];
                 if (g && g.fecha) {
@@ -807,7 +802,7 @@
             }
         }
 
-        if (estado.saltosHistorial) {
+        if (Array.isArray(estado.saltosHistorial)) {
             estado.saltosHistorial.forEach(s => {
                 if (s && s.fecha) {
                     const p = s.fecha.split('-');
@@ -837,7 +832,7 @@
 
         const histContainer = document.getElementById('dashHistoricalWinners');
         histContainer.innerHTML = '';
-        if (estado.historicoGanadores && estado.historicoGanadores.length > 0) {
+        if (Array.isArray(estado.historicoGanadores) && estado.historicoGanadores.length > 0) {
             estado.historicoGanadores.forEach(h => {
                 histContainer.innerHTML += `
                     <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
@@ -859,7 +854,7 @@
             const valGasto = gastosIndiv[nombre];
 
             let filasTurnos = '';
-            if (estado.gastos) {
+            if (Array.isArray(estado.gastos)) {
                 estado.gastos.forEach((g, index) => {
                     if (g && g.fecha) {
                         const p = g.fecha.split('-');
@@ -1031,7 +1026,7 @@
         const valor = prompt(`¿Cuánto gastó ${persona} hoy? ($):`, "1.80");
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
-            if (!estado.gastos) estado.gastos = [];
+            if (!Array.isArray(estado.gastos)) estado.gastos = [];
             estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor) });
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
@@ -1052,7 +1047,7 @@
 
         const persona = equipo[estado.turnoIndex];
         if (confirm(`¿Saltar a ${persona} por ausencia hoy?`)) {
-            if (!estado.saltosHistorial) estado.saltosHistorial = [];
+            if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
             estado.saltosHistorial.push({ fecha: hoyStr, persona: persona });
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             
