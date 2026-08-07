@@ -45,7 +45,7 @@
 
     <button class="btn-notify" onclick="solicitarNotificaciones()">🔔 Activar Notificaciones de Windows</button>
 
-    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden(Integrantes):</h3>
+    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de la Rueda (4 Integrantes):</h3>
     <div class="rotation-list" id="rotationContainer"></div>
 
     <button class="btn-action" id="btnAvanzar" onclick="avanzarTurno()">✅ Turno Cumplido (Avanzar al siguiente)</button>
@@ -53,15 +53,23 @@
 </div>
 
 <script>
-    // CAMBIA AQUÍ LOS NOMBRES REALES DE USTEDES 4:
+    // Nombres oficiales del equipo
     const integrantesIniciales = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
 
-    let equipo = JSON.parse(localStorage.getItem('cafe_equipo_fijo')) || integrantesIniciales;
+    let equipoGuardado = JSON.parse(localStorage.getItem('cafe_equipo_fijo'));
+    
+    // Si no hay datos o si contenía la palabra "Compañero", se reescribe con los nombres correctos
+    if (!equipoGuardado || equipoGuardado.some(n => n.includes("Compañero") || n.includes("Integrante"))) {
+        equipoGuardado = integrantesIniciales;
+        localStorage.setItem('cafe_equipo_fijo', JSON.stringify(equipoGuardado));
+    }
+
+    let equipo = equipoGuardado;
     let turnoActual = parseInt(localStorage.getItem('cafe_turno_index')) || 0;
 
     function esFinDeSemana() {
         const diaSemana = new Date().getDay();
-        return diaSemana === 0 || diaSemana === 6; // 0 = Domingo, 6 = Sábado
+        return diaSemana === 0 || diaSemana === 6;
     }
 
     function render() {
