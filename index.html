@@ -3,212 +3,689 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TI - Control de Café ☕</title>
+    <title>Área de Sistemas - Control de Café ☕</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SDKs de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #1e1e2e; color: #cdd6f4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .card { background: #2b2b3b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 480px; text-align: center; border: 1px solid #45475a; }
-        h1 { color: #f9e2af; font-size: 24px; margin-bottom: 5px; }
-        p.sub { color: #a6adc8; font-size: 14px; margin-bottom: 20px; }
-        .rotation-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-        .member { background: #313244; padding: 12px 16px; border-radius: 8px; border: 1px solid #45475a; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
-        .member.active { border: 2px solid #a6e3a1; background: #45475a; }
-        .badge { background: #89b4fa; color: #11111b; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
-        .badge.current { background: #a6e3a1; font-weight: bold; }
-        .btn-action { background: #fab387; color: #11111b; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; }
-        .btn-action:hover { background: #f9e2af; }
-        .btn-action:disabled { background: #585b70; cursor: not-allowed; opacity: 0.6; }
-        .btn-secondary { background: #45475a; color: #cdd6f4; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px; }
-        .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #181825; border: 1px solid #a6e3a1; margin-bottom: 15px; }
-        .result-box.weekend { border-color: #f38ba8; }
-        .result-box.done { border-color: #89b4fa; }
-        .result-box h2 { color: #a6e3a1; margin: 0 0 5px 0; font-size: 22px; }
-        .result-box.weekend h2 { color: #f38ba8; }
-        .result-box.done h2 { color: #89b4fa; }
-        .result-box p { margin: 0; color: #bac2de; font-size: 14px; }
-        .info-banner { background: #f38ba8; color: #11111b; font-weight: bold; padding: 8px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; display: none; }
-        .info-banner.success { background: #a6e3a1; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        
+        :root {
+            --bg-body: linear-gradient(135deg, #E6E4F0 0%, #FAF9FC 100%);
+            --navy: #2B2A6B;
+            --navy-light: #3D3B8E;
+            --gold: #D39E2A;
+            --card: #FFFFFF;
+            --inner: #F3F2F8;
+            --text: #1E1D45;
+            --muted: #5C5B82;
+            --border: #D1CFE2;
+            --green: #2E7D32;
+            --green-bg: #C8E6C9;
+            --danger: #C62828;
+            --history-th: #2B2A6B;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: linear-gradient(135deg, #0F0F1A 0%, #1A192B 100%);
+            --navy: #7A78E0;
+            --navy-light: #9492EC;
+            --gold: #F1B838;
+            --card: #18172A;
+            --inner: #23223A;
+            --text: #E6E5F5;
+            --muted: #9E9CBE;
+            --border: #3A3859;
+            --green: #81C784;
+            --green-bg: #1B3821;
+            --danger: #E57373;
+            --history-th: #33315C;
+        }
+
+        body { 
+            background: var(--bg-body); 
+            color: var(--text); 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px 15px; 
+        }
+        
+        /* Barra superior con z-index 102 para estar siempre sobre el menú */
+        .top-bar { 
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex; 
+            gap: 10px; 
+            z-index: 102; 
+        }
+
+        .btn-top { 
+            background: var(--navy); 
+            color: white; 
+            border: none; 
+            padding: 10px 16px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+        }
+        .btn-top:hover { opacity: 0.9; }
+
+        .sidebar { 
+            position: fixed; 
+            top: 0; 
+            left: -380px; 
+            width: 380px; 
+            height: 100%; 
+            background: var(--card); 
+            border-right: 3px solid var(--gold); 
+            box-shadow: 5px 0 20px rgba(0,0,0,0.3); 
+            transition: left 0.3s ease; 
+            z-index: 101; 
+            padding: 80px 20px 20px 20px; 
+            overflow-y: auto; 
+        }
+        .sidebar.open { left: 0; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 100; }
+        .sidebar-overlay.active { display: block; }
+
+        .stat-card { background: var(--inner); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        .stat-card h4 { margin: 0 0 8px 0; color: var(--navy); font-size: 14px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+        .stat-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
+        .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; }
+
+        .card { 
+            background: var(--card); 
+            padding: 30px 25px; 
+            border-radius: 20px; 
+            box-shadow: 0 12px 35px rgba(0,0,0,0.25); 
+            width: 100%; 
+            max-width: 480px; 
+            text-align: center; 
+            border: 1px solid var(--border); 
+            margin-top: 40px;
+        }
+        
+        h1 { color: var(--navy); font-size: 22px; margin: 0 0 4px 0; }
+        p.sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; letter-spacing: 0.5px; }
+        
+        .rotation-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+        
+        .member { 
+            background: var(--inner); 
+            padding: 12px 16px; 
+            border-radius: 10px; 
+            border: 1px solid var(--border); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            font-weight: bold; 
+            font-size: 14px; 
+        }
+        .member.active { border: 2px solid var(--gold); }
+        .member.completed { border: 2px solid var(--green); background: var(--green-bg); }
+        .member.vacacion { border: 1px dashed var(--muted); opacity: 0.6; }
+        
+        .badge { 
+            background: var(--border); 
+            color: var(--text); 
+            padding: 5px 12px; 
+            border-radius: 12px; 
+            font-size: 11px; 
+            white-space: nowrap;
+        }
+        .badge.current { background: var(--gold); color: #000; font-weight: bold; }
+        .badge.done { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+        .badge.vaca { background: var(--muted); color: white; }
+        
+        .btn-action { background: var(--navy); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin-bottom: 8px; }
+        .btn-action:hover { opacity: 0.9; }
+        .btn-action:disabled { background: var(--border); cursor: not-allowed; opacity: 0.6; }
+        
+        .btn-secondary { background: var(--inner); color: var(--navy); border: 1px solid var(--border); padding: 9px; font-size: 12px; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 8px; }
+        .btn-mini { background: var(--navy); color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .btn-danger { background: #FFCDD2; color: #B71C1C; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        
+        .result-box { 
+            padding: 16px; 
+            border-radius: 12px; 
+            background: var(--inner); 
+            border: 1px solid var(--gold); 
+            margin-bottom: 18px; 
+        }
+        .result-box h2 { color: var(--navy); margin: 4px 0; font-size: 22px; }
+        
+        table.history-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 5px; }
+        table.history-table th, table.history-table td { border: 1px solid var(--border); padding: 5px; text-align: left; }
+        table.history-table th { background: var(--history-th); color: white; }
+
+        .user-breakdown { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 6px; display: none; }
+        .user-breakdown.active { display: block; }
+
+        .vaca-toggle { cursor: pointer; border: none; padding: 4px 8px; font-size: 10px; border-radius: 4px; font-weight: bold; }
+        .vaca-toggle.off { background: #FFCDD2; color: #B71C1C; }
+        .vaca-toggle.on { background: #C8E6C9; color: #1B5E20; }
+
+        .status-sync { font-size: 11px; color: var(--muted); margin-top: 12px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>☕ Rotación de Café - TI</h1>
-    <p class="sub">Control Sincronizado Lunes a Viernes</p>
+<div class="top-bar">
+    <button class="btn-top" onclick="toggleSidebar()">📊 Menú</button>
+    <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Modo Noche</button>
+</div>
 
-    <div id="infoBanner" class="info-banner"></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-    <div class="result-box" id="resultBox">
-        <p id="labelResponsable">Hoy le toca invitar a:</p>
-        <h2 id="todayResponsable">Cargando datos de la nube...</h2>
-        <p id="todayDate" style="color: #6c7086; font-size: 12px; margin-top: 5px;"></p>
+<div class="sidebar" id="sidebar">
+    <h2 style="color: var(--navy); font-size: 18px; margin-top: 0;">📊 Panel de TI</h2>
+    <p style="font-size: 12px; color: var(--muted); margin-bottom: 15px;" id="dashboardMonth"></p>
+
+    <div class="stat-card">
+        <h4>📊 Comparativa de Gastos ($)</h4>
+        <canvas id="gastosChart" style="max-height: 180px;"></canvas>
     </div>
 
-    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de Café:</h3>
+    <div class="stat-card">
+        <h4>🏅 Medallas Actuales</h4>
+        <ul class="stat-list" id="dashBadgesList"></ul>
+    </div>
+
+    <div class="stat-card">
+        <h4>🏆 Histórico de Ganadores por Mes</h4>
+        <ul class="stat-list" id="dashHistoricalWinners"></ul>
+        <button class="btn-secondary" style="margin-top: 8px;" onclick="cerrarMes()">🔒 Guardar y Cerrar Mes Actual</button>
+    </div>
+
+    <div class="stat-card">
+        <h4>💰 Gastos Mes & Proyección</h4>
+        <ul class="stat-list" id="dashExpenseList"></ul>
+        <div style="margin-top: 8px; font-weight: bold; color: var(--gold); font-size: 12px; text-align: right;" id="dashTotalMonth">Total Grupo: $0.00</div>
+        <div style="font-weight: bold; color: var(--navy); font-size: 12px; text-align: right;" id="dashProyeccionMonth">Proyección Mes: $0.00</div>
+    </div>
+
+    <div class="stat-card">
+        <h4>🏖️ Modo Vacaciones</h4>
+        <ul class="stat-list" id="dashVacacionesList"></ul>
+    </div>
+
+    <div class="stat-card">
+        <h4>📜 Historial General de Gastos</h4>
+        <div style="max-height: 150px; overflow-y: auto;">
+            <table class="history-table">
+                <thead><tr><th>Fecha</th><th>Usuario</th><th>Monto</th><th>Acción</th></tr></thead>
+                <tbody id="dashHistoryBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h1>☕ Control de Café - TI</h1>
+    <p class="sub">ROTACIÓN PARA EL CAFÉ DIARIO</p>
+
+    <div class="result-box" id="resultBox">
+        <p id="labelResponsable" style="margin:0; font-size:12px; color:var(--muted)">Hoy le toca gastar a:</p>
+        <h2 id="todayResponsable">Cargando...</h2>
+        <p id="todayDate" style="color: var(--muted); font-size: 11px; margin-top: 3px;"></p>
+    </div>
+
+    <h3 style="text-align: left; font-size: 13px; color: var(--navy); margin: 10px 0 8px 0;">Rotación del Equipo:</h3>
     <div class="rotation-list" id="rotationContainer"></div>
 
     <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">✅ Turno Cumplido</button>
-    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar por ausencia (Máx 2)</button>
+    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar por Ausencia</button>
+    <button class="btn-secondary" onclick="intercambiarTurno()">🔄 Cambiar Turno</button>
+
+    <div class="status-sync" id="syncStatus">🔄 Conectando con Firebase...</div>
 </div>
 
 <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCy5LTetJn4NACqBERCwG3qpegpF4itxE8",
+      authDomain: "control-cafe-ti.firebaseapp.com",
+      databaseURL: "https://control-cafe-ti-default-rtdb.firebaseio.com",
+      projectId: "control-cafe-ti",
+      storageBucket: "control-cafe-ti.firebasestorage.app",
+      messagingSenderId: "690829143751",
+      appId: "1:690829143751:web:5092b95c870097431018e2",
+      measurementId: "G-586TCZ7KQ6"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const dbRef = db.ref('control_cafe');
+
     const equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
-    
-    // API pública de almacenamiento temporal para sincronizar los 4 teléfonos/PCs
-    const BIN_ID = "65c8f870dc74654018a3d111"; // ID público de pruebas
-    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+    const THEME_KEY = "cafe_ti_tema";
+
+    let miChart = null;
+    let usuarioDesglosadoAbierto = null;
 
     let estado = {
         turnoIndex: 0,
+        ultimoEnCumplir: "",
         ultimaFechaCumplido: "",
-        saltosHoy: 0,
-        fechaUltimoSalto: ""
+        gastos: [],
+        saltosHistorial: [],
+        vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
+        historicoGanadores: []
     };
+
+    dbRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            estado = {
+                turnoIndex: data.turnoIndex ?? 0,
+                ultimoEnCumplir: data.ultimoEnCumplir ?? "",
+                ultimaFechaCumplido: data.ultimaFechaCumplido ?? "",
+                gastos: data.gastos ? Object.values(data.gastos) : [],
+                saltosHistorial: data.saltosHistorial ? Object.values(data.saltosHistorial) : [],
+                vacaciones: data.vacaciones ?? { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
+                historicoGanadores: data.historicoGanadores ? Object.values(data.historicoGanadores) : []
+            };
+        } else {
+            guardarEstadoFirebase();
+        }
+        verificarAjusteVacaciones();
+        render();
+        document.getElementById('syncStatus').innerText = '🟢 Conectado en Tiempo Real (Firebase)';
+    }, (error) => {
+        console.error("Error al sincronizar:", error);
+        document.getElementById('syncStatus').innerText = '🔴 Error de conexión con Firebase';
+    });
+
+    function guardarEstadoFirebase() {
+        dbRef.set(estado);
+    }
+
+    function aplicarTema(tema) {
+        document.documentElement.setAttribute('data-theme', tema);
+        const btn = document.getElementById('btnTheme');
+        btn.innerHTML = tema === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+        localStorage.setItem(THEME_KEY, tema);
+        if (miChart) renderGraficoChart([]);
+    }
+
+    function toggleTheme() {
+        const temaActual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        aplicarTema(temaActual === 'dark' ? 'light' : 'dark');
+    }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('active');
+    }
 
     function obtenerFechaHoy() {
         const d = new Date();
         return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     }
 
-    function esFinDeSemana() {
-        const dia = new Date().getDay();
-        return dia === 0 || dia === 6;
+    function verificarAjusteVacaciones() {
+        let intentos = 0;
+        while (estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
+            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            intentos++;
+        }
     }
 
-    async function cargarEstadoCloud() {
-        try {
-            const resp = await fetch(API_URL + "/latest");
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.record && typeof data.record.turnoIndex === 'number') {
-                    estado = data.record;
-                }
-            }
-        } catch (e) {
-            console.log("Cargando desde almacenamiento local alternativo");
-            const local = localStorage.getItem('cafe_estado_v2');
-            if (local) estado = JSON.parse(local);
+    function editarGastoHistorial(indexOriginal) {
+        const gasto = estado.gastos[indexOriginal];
+        const nuevoMonto = prompt(`Editar monto del turno de ${gasto.persona} (${gasto.fecha}):`, gasto.monto.toFixed(2));
+        
+        if (nuevoMonto !== null && !isNaN(parseFloat(nuevoMonto)) && parseFloat(nuevoMonto) >= 0) {
+            estado.gastos[indexOriginal].monto = parseFloat(nuevoMonto);
+            guardarEstadoFirebase();
         }
+    }
+
+    function eliminarGasto(indexOriginal) {
+        if (confirm("¿Estás seguro de eliminar este turno del historial?")) {
+            estado.gastos.splice(indexOriginal, 1);
+            guardarEstadoFirebase();
+        }
+    }
+
+    function toggleDesgloseUsuario(nombre) {
+        usuarioDesglosadoAbierto = (usuarioDesglosadoAbierto === nombre) ? null : nombre;
         render();
     }
 
-    async function guardarEstadoCloud() {
-        localStorage.setItem('cafe_estado_v2', JSON.stringify(estado));
-        try {
-            await fetch(API_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(estado)
+    function renderGraficoChart(datosGastos) {
+        const ctx = document.getElementById('gastosChart').getContext('2d');
+        const esDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const colorTexto = esDark ? '#E6E5F5' : '#1E1D45';
+
+        if (miChart) miChart.destroy();
+
+        miChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: equipo,
+                datasets: [{
+                    label: 'Gastos del Mes ($)',
+                    data: datosGastos,
+                    backgroundColor: ['#2B2A6B', '#D39E2A', '#2E7D32', '#3D3B8E'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: colorTexto } },
+                    y: { ticks: { color: colorTexto }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function cerrarMes() {
+        const hoy = new Date();
+        const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        
+        const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
+        const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
+        const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
+
+        if (confirm(`¿Deseas guardar los ganadores del mes de ${mesNombre}?`)) {
+            if (!estado.historicoGanadores) estado.historicoGanadores = [];
+            
+            estado.historicoGanadores.unshift({
+                mes: mesNombre,
+                cono: elCono,
+                aninado: elAninado,
+                ausente: elAusente
             });
-        } catch (e) {
-            console.error("Error al sincronizar en la nube", e);
+
+            guardarEstadoFirebase();
+            alert("🏆 ¡Mes guardado con éxito en el Histórico!");
         }
+    }
+
+    function calcularDashboard() {
+        const hoy = new Date();
+        const mesActual = hoy.getMonth() + 1;
+        const anioActual = hoy.getFullYear();
+
+        let gastosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+        let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+        let saltosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+        let totalGeneralMes = 0;
+
+        const historyBody = document.getElementById('dashHistoryBody');
+        historyBody.innerHTML = '';
+
+        if (estado.gastos) {
+            for (let i = estado.gastos.length - 1; i >= 0; i--) {
+                const g = estado.gastos[i];
+                const p = g.fecha.split('-');
+                if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                    if (gastosIndiv[g.persona] !== undefined) {
+                        gastosIndiv[g.persona] += g.monto;
+                        turnosIndiv[g.persona] += 1;
+                    }
+                    totalGeneralMes += g.monto;
+                }
+                historyBody.innerHTML += `
+                    <tr>
+                        <td>${g.fecha}</td>
+                        <td>${g.persona}</td>
+                        <td>$${g.monto.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
+                            <button class="btn-danger" onclick="eliminarGasto(${i})">🗑️</button>
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        if (estado.saltosHistorial) {
+            estado.saltosHistorial.forEach(s => {
+                const p = s.fecha.split('-');
+                if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                    if (saltosIndiv[s.persona] !== undefined) saltosIndiv[s.persona] += 1;
+                }
+            });
+        }
+
+        document.getElementById('dashboardMonth').innerText = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
+        let minGasto = Infinity, elCono = "Nadie";
+        let maxGasto = -1, elAninado = "Nadie";
+        let maxSaltos = -1, elFantasma = "Nadie";
+
+        equipo.forEach(nombre => {
+            const prom = turnosIndiv[nombre] > 0 ? (gastosIndiv[nombre] / turnosIndiv[nombre]) : 0;
+            if (prom > 0 && prom < minGasto) { minGasto = prom; elCono = nombre; }
+            if (gastosIndiv[nombre] > maxGasto && gastosIndiv[nombre] > 0) { maxGasto = gastosIndiv[nombre]; elAninado = nombre; }
+            if (saltosIndiv[nombre] > maxSaltos && saltosIndiv[nombre] > 0) { maxSaltos = saltosIndiv[nombre]; elFantasma = nombre; }
+        });
+
+        document.getElementById('dashBadgesList').innerHTML = `
+            <li><span>🤌 El Coño:</span> <strong id="badgeCono">${elCono}</strong></li>
+            <li><span>💸 El Billeteado:</span> <strong id="badgeAninado">${elAninado}</strong></li>
+            <li><span>👻 El Ausente:</span> <strong id="badgeAusente">${elFantasma}</strong></li>
+        `;
+
+        const histContainer = document.getElementById('dashHistoricalWinners');
+        histContainer.innerHTML = '';
+        if (estado.historicoGanadores && estado.historicoGanadores.length > 0) {
+            estado.historicoGanadores.forEach(h => {
+                histContainer.innerHTML += `
+                    <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
+                        <span style="font-weight:bold; color:var(--navy);">${h.mes}</span>
+                        <small>💸 ${h.aninado} | 🤌 ${h.cono} | 👻 ${h.ausente}</small>
+                    </li>`;
+            });
+        } else {
+            histContainer.innerHTML = '<li><small style="color:var(--muted)">Sin registros pasados aún.</small></li>';
+        }
+
+        const expList = document.getElementById('dashExpenseList');
+        expList.innerHTML = '';
+        const diasDelMes = new Date(anioActual, mesActual, 0).getDate();
+        const diaHoy = hoy.getDate();
+        const factorProyeccion = diaHoy > 0 ? (diasDelMes / diaHoy) : 1;
+
+        const dataGrafico = [];
+        equipo.forEach(nombre => {
+            const valGasto = gastosIndiv[nombre];
+            dataGrafico.push(valGasto);
+
+            let filasTurnos = '';
+            if (estado.gastos) {
+                estado.gastos.forEach((g, index) => {
+                    const p = g.fecha.split('-');
+                    if (g.persona === nombre && parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                        filasTurnos += `
+                            <tr>
+                                <td>${g.fecha}</td>
+                                <td>$${g.monto.toFixed(2)}</td>
+                                <td>
+                                    <button class="btn-mini" onclick="editarGastoHistorial(${index})">✏️</button>
+                                    <button class="btn-danger" onclick="eliminarGasto(${index})">🗑️</button>
+                                </td>
+                            </tr>`;
+                    }
+                });
+            }
+
+            const estaAbierto = usuarioDesglosadoAbierto === nombre;
+            
+            expList.innerHTML += `
+                <li style="margin-bottom: 6px;">
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                        <span>${nombre}:</span> 
+                        <div>
+                            <strong>$${valGasto.toFixed(2)}</strong> 
+                            <button class="btn-mini" style="margin-left:4px;" onclick="toggleDesgloseUsuario('${nombre}')">
+                                ${estaAbierto ? '✖ Cerrar' : '📋 Ver Turnos'}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="user-breakdown ${estaAbierto ? 'active' : ''}">
+                        <div style="font-size:10px; font-weight:bold; margin-bottom:4px; color:var(--navy);">Turnos de ${nombre}:</div>
+                        ${filasTurnos ? `
+                            <table class="history-table">
+                                <thead><tr><th>Fecha</th><th>Monto</th><th>Acción</th></tr></thead>
+                                <tbody>${filasTurnos}</tbody>
+                            </table>
+                        ` : '<small style="color:var(--muted); font-size:10px;">Sin turnos registrados este mes.</small>'}
+                    </div>
+                </li>`;
+        });
+
+        document.getElementById('dashTotalMonth').innerText = `Total Grupo: $${totalGeneralMes.toFixed(2)}`;
+        document.getElementById('dashProyeccionMonth').innerText = `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`;
+
+        renderGraficoChart(dataGrafico);
+
+        const vacList = document.getElementById('dashVacacionesList');
+        vacList.innerHTML = '';
+        equipo.forEach(nombre => {
+            const estaDeVaca = estado.vacaciones ? estado.vacaciones[nombre] : false;
+            vacList.innerHTML += `
+                <li>
+                    <span>${nombre}:</span>
+                    <button class="vaca-toggle ${estaDeVaca ? 'on' : 'off'}" onclick="toggleVacaciones('${nombre}')">
+                        ${estaDeVaca ? '🏖️ En Vacaciones' : '💼 Trabajando'}
+                    </button>
+                </li>`;
+        });
+    }
+
+    function toggleVacaciones(nombre) {
+        if (!estado.vacaciones) estado.vacaciones = {};
+        estado.vacaciones[nombre] = !estado.vacaciones[nombre];
+        verificarAjusteVacaciones();
+        guardarEstadoFirebase();
     }
 
     function render() {
         const hoy = obtenerFechaHoy();
-        const esFinde = esFinDeSemana();
-        const yaTurnoCumplidoHoy = estado.ultimaFechaCumplido === hoy;
-        
-        // Resetear contador de saltos si cambió el día
-        if (estado.fechaUltimoSalto !== hoy) {
-            estado.saltosHoy = 0;
-            estado.fechaUltimoSalto = hoy;
-        }
-
+        const yaPagoHoy = estado.ultimaFechaCumplido === hoy;
         const container = document.getElementById('rotationContainer');
         container.innerHTML = '';
 
         equipo.forEach((nombre, index) => {
-            const esSuTurno = index === estado.turnoIndex;
+            const esElActual = index === estado.turnoIndex;
+            const esElUltimoQuePago = nombre === estado.ultimoEnCumplir && yaPagoHoy;
+            const estaEnVacaciones = estado.vacaciones ? estado.vacaciones[nombre] : false;
+
+            let badgeText = 'En espera';
+            let classMember = '';
+            let classBadge = '';
+
+            if (estaEnVacaciones) {
+                badgeText = '🏖️ VACACIONES';
+                classMember = 'vacacion'; classBadge = 'vaca';
+            } else if (esElUltimoQuePago) {
+                badgeText = '✅ PAGADO HOY';
+                classMember = 'completed'; classBadge = 'done';
+            } else if (esElActual) {
+                badgeText = '👉 TURNO HOY';
+                classMember = 'active'; classBadge = 'current';
+            }
+
             container.innerHTML += `
-                <div class="member ${esSuTurno && !esFinde ? 'active' : ''}">
+                <div class="member ${classMember}">
                     <span>${index + 1}. ${nombre}</span>
-                    <span class="badge ${esSuTurno && !esFinde ? 'current' : ''}">
-                        ${esSuTurno ? (esFinde ? 'Próximo Lunes' : (yaTurnoCumplidoHoy ? '✔ CUMPLIDO HOY' : '👉 TURNO HOY')) : 'En espera'}
-                    </span>
-                </div>
-            `;
+                    <span class="badge ${classBadge}">${badgeText}</span>
+                </div>`;
         });
 
-        const resultBox = document.getElementById('resultBox');
-        const infoBanner = document.getElementById('infoBanner');
         const btnAvanzar = document.getElementById('btnAvanzar');
         const btnSaltar = document.getElementById('btnSaltar');
 
-        document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
-        const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('es-ES', opcionesFecha);
+        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        if (esFinde) {
-            infoBanner.style.display = 'block';
-            infoBanner.className = 'info-banner';
-            infoBanner.innerText = "😴 ¡Fin de semana! Control de café pausado.";
-            resultBox.className = 'result-box weekend';
-            document.getElementById('labelResponsable').innerText = "El próximo Lunes le tocará a:";
+        if (yaPagoHoy) {
+            document.getElementById('labelResponsable').innerText = "El café de hoy ya fue cubierto por:";
+            document.getElementById('todayResponsable').innerText = `${estado.ultimoEnCumplir} 🎉`;
             btnAvanzar.disabled = true;
             btnSaltar.disabled = true;
-        } else if (yaTurnoCumplidoHoy) {
-            infoBanner.style.display = 'block';
-            infoBanner.className = 'info-banner success';
-            infoBanner.innerText = "🎉 ¡El turno de café de hoy ya fue completado!";
-            resultBox.className = 'result-box done';
-            document.getElementById('labelResponsable').innerText = "Hoy cumplió su turno:";
-            btnAvanzar.disabled = true;
-            btnSaltar.disabled = true;
+            btnAvanzar.innerText = "☕ ¡TURNO CUMPLIDO!";
         } else {
-            infoBanner.style.display = 'none';
-            resultBox.className = 'result-box';
-            document.getElementById('labelResponsable').innerText = "Hoy le toca invitar a:";
+            document.getElementById('labelResponsable').innerText = "Hoy le toca gastar a:";
+            document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
             btnAvanzar.disabled = false;
-            
-            // Validar límite de 2 saltos por día
-            if (estado.saltosHoy >= 2) {
-                btnSaltar.disabled = true;
-                btnSaltar.innerText = "⏭️ Límite de saltos alcanzado (2/2)";
-            } else {
-                btnSaltar.disabled = false;
-                btnSaltar.innerText = `⏭️ Saltar por ausencia (${estado.saltosHoy}/2 saltos)`;
-            }
+            btnSaltar.disabled = false;
+            btnAvanzar.innerText = "✅ Turno Cumplido";
         }
+
+        calcularDashboard();
     }
 
-    async function cumplirTurno() {
-        if (esFinDeSemana()) return;
+    function cumplirTurno() {
         const hoy = obtenerFechaHoy();
-        
-        if (confirm(`¿Confirmar que ${equipo[estado.turnoIndex]} cumplió con el café de hoy?`)) {
-            estado.ultimaFechaCumplido = hoy;
-            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
-            render();
-            await guardarEstadoCloud();
-        }
-    }
-
-    async function saltarTurno() {
-        if (esFinDeSemana()) return;
-        const hoy = obtenerFechaHoy();
-
-        if (estado.saltosHoy >= 2) {
-            alert("Ya se han realizado 2 saltos por ausencia el día de hoy.");
+        if (estado.ultimaFechaCumplido === hoy) {
+            alert("⚠️ Ya se registró el café el día de hoy.");
             return;
         }
 
-        if (confirm(`¿Saltar a ${equipo[estado.turnoIndex]} por ausencia?`)) {
-            estado.saltosHoy++;
-            estado.fechaUltimoSalto = hoy;
+        const persona = equipo[estado.turnoIndex];
+        const valor = prompt(`¿Cuánto gastó ${persona} hoy? ($):`, "1.80");
+        
+        if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
+            if (!estado.gastos) estado.gastos = [];
+            estado.gastos.push({ fecha: hoy, persona: persona, monto: parseFloat(valor) });
+            estado.ultimoEnCumplir = persona;
+            estado.ultimaFechaCumplido = hoy;
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
-            render();
-            await guardarEstadoCloud();
+            verificarAjusteVacaciones();
+            guardarEstadoFirebase();
         }
     }
 
-    // Cargar datos al entrar a la página
-    cargarEstadoCloud();
+    function saltarTurno() {
+        const hoy = obtenerFechaHoy();
+        if (estado.ultimaFechaCumplido === hoy) {
+            alert("⚠️ Ya se registró el café el día de hoy.");
+            return;
+        }
 
-    // Consultar cambios en la nube automáticamente cada 10 segundos
-    setInterval(cargarEstadoCloud, 10000);
+        const persona = equipo[estado.turnoIndex];
+        if (confirm(`¿Saltar a ${persona} por ausencia hoy?`)) {
+            if (!estado.saltosHistorial) estado.saltosHistorial = [];
+            estado.saltosHistorial.push({ fecha: hoy, persona: persona });
+            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            verificarAjusteVacaciones();
+            guardarEstadoFirebase();
+        }
+    }
+
+    function intercambiarTurno() {
+        const p1 = equipo[estado.turnoIndex];
+        const p2 = prompt(`El turno actual es de ${p1}. ¿Con quién deseas intercambiar la posición? (Mauricio, Fabricio, Danny, Sebastian):`);
+        
+        if (equipo.includes(p2) && p2 !== p1) {
+            const idx1 = estado.turnoIndex;
+            const idx2 = equipo.indexOf(p2);
+            
+            const temp = equipo[idx1];
+            equipo[idx1] = equipo[idx2];
+            equipo[idx2] = temp;
+
+            alert(`🤝 Cambio realizado. Ahora le toca a ${equipo[estado.turnoIndex]}.`);
+            guardarEstadoFirebase();
+        } else if (p2) {
+            alert("Nombre no válido.");
+        }
+    }
+
+    const temaGuardado = localStorage.getItem(THEME_KEY) || 'light';
+    aplicarTema(temaGuardado);
 </script>
 
 </body>
