@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s; }
         
         :root {
             --bg-body: linear-gradient(135deg, #E6E4F0 0%, #FAF9FC 100%);
@@ -28,6 +28,13 @@
             --green-bg: #C8E6C9;
             --danger: #C62828;
             --history-th: #2B2A6B;
+            
+            /* Nuevas variables para barra superior limpia */
+            --top-bar-bg: rgba(255, 255, 255, 0.85);
+            --top-btn-bg: #FFFFFF;
+            --top-btn-hover: #F0EFEF;
+            --top-btn-text: #2B2A6B;
+            --top-border: rgba(43, 42, 107, 0.15);
         }
 
         [data-theme="dark"] {
@@ -44,6 +51,13 @@
             --green-bg: #1B3821;
             --danger: #E57373;
             --history-th: #33315C;
+
+            /* Variables modo oscuro para barra superior */
+            --top-bar-bg: rgba(24, 23, 42, 0.85);
+            --top-btn-bg: #23223A;
+            --top-btn-hover: #2F2D4E;
+            --top-btn-text: #E6E5F5;
+            --top-border: rgba(230, 229, 245, 0.15);
         }
 
         body { 
@@ -57,31 +71,47 @@
             padding: 20px 15px; 
         }
         
+        /* Barra superior profesional flotante */
         .top-bar { 
             position: fixed;
-            top: 20px;
+            top: 15px;
             left: 20px;
+            right: 20px;
             display: flex; 
-            gap: 10px; 
+            gap: 8px; 
             z-index: 102; 
             flex-wrap: wrap;
+            background: var(--top-bar-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--top-border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            align-items: center;
         }
 
         .btn-top { 
-            background: var(--navy); 
-            color: white; 
-            border: none; 
-            padding: 10px 14px; 
+            background: var(--top-btn-bg); 
+            color: var(--top-btn-text); 
+            border: 1px solid var(--top-border); 
+            padding: 7px 12px; 
             border-radius: 8px; 
-            font-weight: bold; 
+            font-weight: 600; 
             cursor: pointer; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
             position: relative;
-            font-size: 13px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .btn-top:hover { opacity: 0.9; }
-        .btn-notif-perm { background: var(--gold); color: #000; }
-        .btn-reset-db { background: #C62828; color: #FFF; }
+        .btn-top:hover { background: var(--top-btn-hover); transform: translateY(-1px); }
+        
+        .btn-notif-perm { border-color: var(--gold); color: var(--gold); }
+        .btn-notif-perm.active-perm { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+        
+        .btn-reset-db { color: var(--danger); border-color: rgba(198, 40, 40, 0.3); }
+        .btn-reset-db:hover { background: rgba(198, 40, 40, 0.1); }
 
         .notif-badge {
             position: absolute;
@@ -89,10 +119,11 @@
             right: -5px;
             background: var(--danger);
             color: white;
-            font-size: 10px;
-            padding: 2px 6px;
+            font-size: 9px;
+            padding: 2px 5px;
             border-radius: 10px;
             display: none;
+            font-weight: bold;
         }
 
         .notif-panel {
@@ -160,6 +191,17 @@
         .stat-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
         .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; }
 
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            min-height: 180px;
+        }
+        canvas#gastosChart {
+            width: 100% !important;
+            height: 180px !important;
+        }
+
         .card { 
             background: var(--card); 
             padding: 30px 25px; 
@@ -169,7 +211,7 @@
             max-width: 480px; 
             text-align: center; 
             border: 1px solid var(--border); 
-            margin-top: 50px;
+            margin-top: 70px;
         }
         
         h1 { color: var(--navy); font-size: 22px; margin: 0 0 4px 0; }
@@ -179,7 +221,7 @@
         
         .member { 
             background: var(--inner); 
-            padding: 12px 16px; 
+            padding: 10px 14px; 
             border-radius: 10px; 
             border: 1px solid var(--border); 
             display: flex; 
@@ -240,9 +282,9 @@
 <div class="top-bar">
     <button class="btn-top" onclick="toggleSidebar()">📊 Menú</button>
     <button class="btn-top" onclick="toggleNotifPanel()">🔔 Historial <span class="notif-badge" id="notifBadge">0</span></button>
-    <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">🔔 Activar Notificaciones</button>
+    <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">🔔 Notificaciones</button>
     <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">⚠️ Reiniciar BD</button>
-    <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Modo Noche</button>
+    <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Tema</button>
 </div>
 
 <!-- Panel de Notificaciones Desplegable -->
@@ -264,7 +306,9 @@
 
     <div class="stat-card">
         <h4>📊 Comparativa de Gastos ($)</h4>
-        <canvas id="gastosChart" style="max-height: 180px;"></canvas>
+        <div class="chart-container">
+            <canvas id="gastosChart"></canvas>
+        </div>
     </div>
 
     <div class="stat-card">
@@ -344,6 +388,16 @@
     const equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     const THEME_KEY = "cafe_ti_tema";
 
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "admin123";
+
+    const avatares = {
+        "Mauricio": "https://api.dicebear.com/7.x/bottts/svg?seed=MauricioTI&backgroundColor=b6e3f4",
+        "Fabricio": "https://api.dicebear.com/7.x/bottts/svg?seed=FabricioTI&backgroundColor=c0aede",
+        "Danny": "https://api.dicebear.com/7.x/bottts/svg?seed=DannyTI&backgroundColor=ffd5dc",
+        "Sebastian": "https://api.dicebear.com/7.x/bottts/svg?seed=SebastianTI&backgroundColor=d1d4f9"
+    };
+
     const feriados = [
         "2026-08-10"
     ];
@@ -364,21 +418,31 @@
     };
 
     function reiniciarBaseDeDatosTotal() {
-        if (confirm("⚠️ ¿Estás seguro de reiniciar toda la base de datos a cero? Se borrará todo el historial y se empezará desde Mauricio.")) {
-            const estadoInicial = {
-                turnoIndex: 0,
-                ultimoEnCumplir: "",
-                ultimaFechaCumplido: "",
-                gastos: [],
-                saltosHistorial: [],
-                vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
-                historicoGanadores: [],
-                notificaciones: []
-            };
-            dbRef.set(estadoInicial).then(() => {
-                alert("🔄 Base de datos reiniciada con éxito.");
-                location.reload();
-            });
+        const userIngresado = prompt("🔒 Introduce el usuario de Administrador:");
+        if (userIngresado === null) return;
+
+        const passIngresado = prompt("🔒 Introduce la contraseña de Administrador:");
+        if (passIngresado === null) return;
+
+        if (userIngresado === ADMIN_USER && passIngresado === ADMIN_PASS) {
+            if (confirm("⚠️ Credenciales correctas. ¿Estás 100% seguro de reiniciar toda la base de datos a cero? Se borrará todo el historial.")) {
+                const estadoInicial = {
+                    turnoIndex: 0,
+                    ultimoEnCumplir: "",
+                    ultimaFechaCumplido: "",
+                    gastos: [],
+                    saltosHistorial: [],
+                    vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
+                    historicoGanadores: [],
+                    notificaciones: []
+                };
+                dbRef.set(estadoInicial).then(() => {
+                    alert("🔄 Base de datos reiniciada con éxito.");
+                    location.reload();
+                });
+            }
+        } else {
+            alert("❌ Usuario o contraseña incorrectos. No se puede reiniciar la base de datos.");
         }
     }
 
@@ -389,17 +453,15 @@
             return;
         }
         if (Notification.permission === "granted") {
-            btn.innerText = "🔕 Notificaciones Activas";
-            btn.style.background = "#2E7D32";
-            btn.style.color = "#FFF";
+            btn.innerText = "🔕 Notificaciones";
+            btn.classList.add('active-perm');
         } else if (Notification.permission === "denied") {
-            btn.innerText = "❌ Notificaciones Bloqueadas";
-            btn.style.background = "#C62828";
-            btn.style.color = "#FFF";
+            btn.innerText = "❌ Bloqueadas";
+            btn.style.borderColor = "var(--danger)";
+            btn.style.color = "var(--danger)";
         } else {
-            btn.innerText = "🔔 Activar Notificaciones";
-            btn.style.background = "var(--gold)";
-            btn.style.color = "#000";
+            btn.innerText = "🔔 Notificaciones";
+            btn.classList.remove('active-perm');
         }
     }
 
@@ -485,16 +547,15 @@
         
         ultimaNotifProcesadaID = nuevoId;
         guardarEstadoFirebase();
-
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("☕ Control de Café - TI", {
-                body: texto.replace(/\*\*/g, ''),
-                icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
-            });
-        }
     }
 
     function toggleNotifPanel() {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
         notifAbierto = !notifAbierto;
         const panel = document.getElementById('notifPanel');
         panel.classList.toggle('open', notifAbierto);
@@ -543,9 +604,13 @@
     function aplicarTema(tema) {
         document.documentElement.setAttribute('data-theme', tema);
         const btn = document.getElementById('btnTheme');
-        btn.innerHTML = tema === 'dark' ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+        btn.innerHTML = tema === 'dark' ? '☀️ Claro' : '🌙 Tema';
         localStorage.setItem(THEME_KEY, tema);
-        if (miChart) renderGraficoChart([]);
+        if (miChart) {
+            miChart.options.scales.x.ticks.color = tema === 'dark' ? '#E6E5F5' : '#1E1D45';
+            miChart.options.scales.y.ticks.color = tema === 'dark' ? '#E6E5F5' : '#1E1D45';
+            miChart.update();
+        }
     }
 
     function toggleTheme() {
@@ -554,8 +619,27 @@
     }
 
     function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('sidebarOverlay').classList.toggle('active');
+        const sidebar = document.getElementById('sidebar');
+        const willOpen = !sidebar.classList.contains('open');
+
+        if (willOpen && notifAbierto) {
+            notifAbierto = false;
+            document.getElementById('notifPanel').classList.remove('open');
+        }
+
+        sidebar.classList.toggle('open', willOpen);
+        document.getElementById('sidebarOverlay').classList.toggle('active', willOpen);
+        
+        if (willOpen) {
+            setTimeout(() => {
+                if (miChart) {
+                    miChart.resize();
+                    miChart.update();
+                } else {
+                    calcularDashboard();
+                }
+            }, 150);
+        }
     }
 
     function obtenerFechaFormateada(d) {
@@ -593,6 +677,7 @@
         if (nuevoMonto !== null && !isNaN(parseFloat(nuevoMonto)) && parseFloat(nuevoMonto) >= 0) {
             estado.gastos[indexOriginal].monto = parseFloat(nuevoMonto);
             agregarNotificacion(`✏️ Se editó el turno de ${gasto.persona} a $${parseFloat(nuevoMonto).toFixed(2)}`);
+            guardarEstadoFirebase();
         }
     }
 
@@ -601,6 +686,7 @@
             const eliminado = estado.gastos[indexOriginal];
             estado.gastos.splice(indexOriginal, 1);
             agregarNotificacion(`🗑️ Se eliminó el registro de café de ${eliminado.persona}`);
+            guardarEstadoFirebase();
         }
     }
 
@@ -610,11 +696,21 @@
     }
 
     function renderGraficoChart(datosGastos) {
-        const ctx = document.getElementById('gastosChart').getContext('2d');
+        const canvasEl = document.getElementById('gastosChart');
+        if (!canvasEl) return;
+        const ctx = canvasEl.getContext('2d');
         const esDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const colorTexto = esDark ? '#E6E5F5' : '#1E1D45';
 
-        if (miChart) miChart.destroy();
+        if (miChart) {
+            miChart.destroy();
+            miChart = null;
+        }
+
+        const safeData = equipo.map(nombre => {
+            const val = datosGastos[nombre];
+            return (typeof val === 'number' && !isNaN(val)) ? val : 0;
+        });
 
         miChart = new Chart(ctx, {
             type: 'bar',
@@ -622,13 +718,14 @@
                 labels: equipo,
                 datasets: [{
                     label: 'Gastos del Mes ($)',
-                    data: datosGastos,
+                    data: safeData,
                     backgroundColor: ['#2B2A6B', '#D39E2A', '#2E7D32', '#3D3B8E'],
                     borderRadius: 6
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { ticks: { color: colorTexto } },
@@ -657,6 +754,7 @@
             });
 
             agregarNotificacion(`🔒 Se cerró el mes de ${mesNombre}`);
+            guardarEstadoFirebase();
             alert("🏆 ¡Mes guardado con éxito en el Histórico!");
         }
     }
@@ -677,32 +775,37 @@
         if (estado.gastos) {
             for (let i = estado.gastos.length - 1; i >= 0; i--) {
                 const g = estado.gastos[i];
-                const p = g.fecha.split('-');
-                if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
-                    if (gastosIndiv[g.persona] !== undefined) {
-                        gastosIndiv[g.persona] += g.monto;
-                        turnosIndiv[g.persona] += 1;
+                if (g && g.fecha) {
+                    const p = g.fecha.split('-');
+                    if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                        const montoVal = parseFloat(g.monto) || 0;
+                        if (gastosIndiv[g.persona] !== undefined) {
+                            gastosIndiv[g.persona] += montoVal;
+                            turnosIndiv[g.persona] += 1;
+                        }
+                        totalGeneralMes += montoVal;
                     }
-                    totalGeneralMes += g.monto;
+                    historyBody.innerHTML += `
+                        <tr>
+                            <td>${g.fecha}</td>
+                            <td>${g.persona}</td>
+                            <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
+                            <td>
+                                <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
+                                <button class="btn-danger" onclick="eliminarGasto(${i})">🗑️</button>
+                            </td>
+                        </tr>`;
                 }
-                historyBody.innerHTML += `
-                    <tr>
-                        <td>${g.fecha}</td>
-                        <td>${g.persona}</td>
-                        <td>$${g.monto.toFixed(2)}</td>
-                        <td>
-                            <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
-                            <button class="btn-danger" onclick="eliminarGasto(${i})">🗑️</button>
-                        </td>
-                    </tr>`;
             }
         }
 
         if (estado.saltosHistorial) {
             estado.saltosHistorial.forEach(s => {
-                const p = s.fecha.split('-');
-                if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
-                    if (saltosIndiv[s.persona] !== undefined) saltosIndiv[s.persona] += 1;
+                if (s && s.fecha) {
+                    const p = s.fecha.split('-');
+                    if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                        if (saltosIndiv[s.persona] !== undefined) saltosIndiv[s.persona] += 1;
+                    }
                 }
             });
         }
@@ -744,25 +847,25 @@
         const diaHoy = hoy.getDate();
         const factorProyeccion = diaHoy > 0 ? (diasDelMes / diaHoy) : 1;
 
-        const dataGrafico = [];
         equipo.forEach(nombre => {
             const valGasto = gastosIndiv[nombre];
-            dataGrafico.push(valGasto);
 
             let filasTurnos = '';
             if (estado.gastos) {
                 estado.gastos.forEach((g, index) => {
-                    const p = g.fecha.split('-');
-                    if (g.persona === nombre && parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
-                        filasTurnos += `
-                            <tr>
-                                <td>${g.fecha}</td>
-                                <td>$${g.monto.toFixed(2)}</td>
-                                <td>
-                                    <button class="btn-mini" onclick="editarGastoHistorial(${index})">✏️</button>
-                                    <button class="btn-danger" onclick="eliminarGasto(${index})">🗑️</button>
-                                </td>
-                            </tr>`;
+                    if (g && g.fecha) {
+                        const p = g.fecha.split('-');
+                        if (g.persona === nombre && parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                            filasTurnos += `
+                                <tr>
+                                    <td>${g.fecha}</td>
+                                    <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
+                                    <td>
+                                        <button class="btn-mini" onclick="editarGastoHistorial(${index})">✏️</button>
+                                        <button class="btn-danger" onclick="eliminarGasto(${index})">🗑️</button>
+                                    </td>
+                                </tr>`;
+                        }
                     }
                 });
             }
@@ -795,7 +898,7 @@
         document.getElementById('dashTotalMonth').innerText = `Total Grupo: $${totalGeneralMes.toFixed(2)}`;
         document.getElementById('dashProyeccionMonth').innerText = `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`;
 
-        renderGraficoChart(dataGrafico);
+        renderGraficoChart(gastosIndiv);
 
         const vacList = document.getElementById('dashVacacionesList');
         vacList.innerHTML = '';
@@ -840,8 +943,10 @@
 
             const integrante = equipo[simuladorIndex];
             
-            if (i === 0) {
-                infoFechasTurnos[integrante] = yaPagoHoy ? "PAGADO HOY" : "TURNO HOY";
+            if (integrante === estado.ultimoEnCumplir && yaPagoHoy) {
+                infoFechasTurnos[integrante] = "PAGADO HOY";
+            } else if (i === 0 && !yaPagoHoy) {
+                infoFechasTurnos[integrante] = "TURNO HOY";
             } else {
                 fechaSimulada = siguienteDiaLaboral(fechaSimulada);
                 infoFechasTurnos[integrante] = fechaSimulada.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -851,9 +956,9 @@
         }
 
         equipo.forEach((nombre, index) => {
-            const esElActual = index === estado.turnoIndex;
-            const esElUltimoQuePago = nombre === estado.ultimoEnCumplir && yaPagoHoy;
             const estaEnVacaciones = estado.vacaciones ? estado.vacaciones[nombre] : false;
+            const esElUltimoQuePagoHoy = (nombre === estado.ultimoEnCumplir && yaPagoHoy);
+            const esElActual = (index === estado.turnoIndex) && !yaPagoHoy;
 
             let badgeText = infoFechasTurnos[nombre] || 'En espera';
             let classMember = '';
@@ -861,18 +966,24 @@
 
             if (estaEnVacaciones) {
                 badgeText = '🏖️ VACACIONES';
-                classMember = 'vacacion'; classBadge = 'vaca';
-            } else if (esElUltimoQuePago) {
+                classMember = 'vacacion'; 
+                classBadge = 'vaca';
+            } else if (esElUltimoQuePagoHoy) {
                 badgeText = '✅ PAGADO HOY';
-                classMember = 'completed'; classBadge = 'done';
-            } else if (esElActual && !yaPagoHoy) {
+                classMember = 'completed'; 
+                classBadge = 'done';
+            } else if (esElActual) {
                 badgeText = '👉 TURNO HOY';
-                classMember = 'active'; classBadge = 'current';
+                classMember = 'active'; 
+                classBadge = 'current';
             }
 
             container.innerHTML += `
                 <div class="member ${classMember}">
-                    <span>${index + 1}. ${nombre}</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${avatares[nombre]}" alt="${nombre}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border);">
+                        <span>${index + 1}. ${nombre}</span>
+                    </div>
                     <span class="badge ${classBadge}">${badgeText}</span>
                 </div>`;
         });
