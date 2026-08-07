@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistemas TI - Control de Café ☕</title>
+    <title>TI - Control de Café ☕</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #1e1e2e; color: #cdd6f4; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -20,151 +20,195 @@
         .btn-action:disabled { background: #585b70; cursor: not-allowed; opacity: 0.6; }
         .btn-secondary { background: #45475a; color: #cdd6f4; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px; }
         .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-notify { background: #89b4fa; color: #11111b; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
         .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #181825; border: 1px solid #a6e3a1; margin-bottom: 15px; }
         .result-box.weekend { border-color: #f38ba8; }
+        .result-box.done { border-color: #89b4fa; }
         .result-box h2 { color: #a6e3a1; margin: 0 0 5px 0; font-size: 22px; }
         .result-box.weekend h2 { color: #f38ba8; }
+        .result-box.done h2 { color: #89b4fa; }
         .result-box p { margin: 0; color: #bac2de; font-size: 14px; }
-        .weekend-banner { background: #f38ba8; color: #11111b; font-weight: bold; padding: 6px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; display: none; }
+        .info-banner { background: #f38ba8; color: #11111b; font-weight: bold; padding: 8px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; display: none; }
+        .info-banner.success { background: #a6e3a1; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>☕ Rotación de Café - TI</h1>
-    <p class="sub">Turnos Lunes a Viernes</p>
+    <p class="sub">Control Sincronizado Lunes a Viernes</p>
 
-    <div id="weekendBanner" class="weekend-banner">😴 ¡Fin de semana! Control de café pausado.</div>
+    <div id="infoBanner" class="info-banner"></div>
 
     <div class="result-box" id="resultBox">
         <p id="labelResponsable">Hoy le toca invitar a:</p>
-        <h2 id="todayResponsable">Cargando...</h2>
+        <h2 id="todayResponsable">Cargando datos de la nube...</h2>
         <p id="todayDate" style="color: #6c7086; font-size: 12px; margin-top: 5px;"></p>
     </div>
 
-    <button class="btn-notify" onclick="solicitarNotificaciones()">🔔 Activar Notificaciones de Windows</button>
-
-    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de la Rueda (4 Integrantes):</h3>
+    <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de Café:</h3>
     <div class="rotation-list" id="rotationContainer"></div>
 
-    <button class="btn-action" id="btnAvanzar" onclick="avanzarTurno()">✅ Turno Cumplido (Avanzar al siguiente)</button>
-    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar persona por ausencia</button>
+    <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">✅ Turno Cumplido</button>
+    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar por ausencia (Máx 2)</button>
 </div>
 
 <script>
-    // Nombres oficiales del equipo
-    const integrantesIniciales = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
-
-    let equipoGuardado = JSON.parse(localStorage.getItem('cafe_equipo_fijo'));
+    const equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     
-    // Si no hay datos o si contenía la palabra "Compañero", se reescribe con los nombres correctos
-    if (!equipoGuardado || equipoGuardado.some(n => n.includes("Compañero") || n.includes("Integrante"))) {
-        equipoGuardado = integrantesIniciales;
-        localStorage.setItem('cafe_equipo_fijo', JSON.stringify(equipoGuardado));
+    // API pública de almacenamiento temporal para sincronizar los 4 teléfonos/PCs
+    const BIN_ID = "65c8f870dc74654018a3d111"; // ID público de pruebas
+    const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+    let estado = {
+        turnoIndex: 0,
+        ultimaFechaCumplido: "",
+        saltosHoy: 0,
+        fechaUltimoSalto: ""
+    };
+
+    function obtenerFechaHoy() {
+        const d = new Date();
+        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
     }
 
-    let equipo = equipoGuardado;
-    let turnoActual = parseInt(localStorage.getItem('cafe_turno_index')) || 0;
-
     function esFinDeSemana() {
-        const diaSemana = new Date().getDay();
-        return diaSemana === 0 || diaSemana === 6;
+        const dia = new Date().getDay();
+        return dia === 0 || dia === 6;
+    }
+
+    async function cargarEstadoCloud() {
+        try {
+            const resp = await fetch(API_URL + "/latest");
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.record && typeof data.record.turnoIndex === 'number') {
+                    estado = data.record;
+                }
+            }
+        } catch (e) {
+            console.log("Cargando desde almacenamiento local alternativo");
+            const local = localStorage.getItem('cafe_estado_v2');
+            if (local) estado = JSON.parse(local);
+        }
+        render();
+    }
+
+    async function guardarEstadoCloud() {
+        localStorage.setItem('cafe_estado_v2', JSON.stringify(estado));
+        try {
+            await fetch(API_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(estado)
+            });
+        } catch (e) {
+            console.error("Error al sincronizar en la nube", e);
+        }
     }
 
     function render() {
-        const container = document.getElementById('rotationContainer');
+        const hoy = obtenerFechaHoy();
         const esFinde = esFinDeSemana();
+        const yaTurnoCumplidoHoy = estado.ultimaFechaCumplido === hoy;
+        
+        // Resetear contador de saltos si cambió el día
+        if (estado.fechaUltimoSalto !== hoy) {
+            estado.saltosHoy = 0;
+            estado.fechaUltimoSalto = hoy;
+        }
 
+        const container = document.getElementById('rotationContainer');
         container.innerHTML = '';
 
         equipo.forEach((nombre, index) => {
-            const esSuTurno = index === turnoActual;
+            const esSuTurno = index === estado.turnoIndex;
             container.innerHTML += `
                 <div class="member ${esSuTurno && !esFinde ? 'active' : ''}">
-                    <span onclick="editarNombre(${index})" style="cursor:pointer;" title="Haz clic para cambiar este nombre">
-                        ${index + 1}. ${nombre} ✏️
-                    </span>
+                    <span>${index + 1}. ${nombre}</span>
                     <span class="badge ${esSuTurno && !esFinde ? 'current' : ''}">
-                        ${esSuTurno ? (esFinde ? 'Próximo Lunes' : '👉 TURNO HOY') : 'En espera'}
+                        ${esSuTurno ? (esFinde ? 'Próximo Lunes' : (yaTurnoCumplidoHoy ? '✔ CUMPLIDO HOY' : '👉 TURNO HOY')) : 'En espera'}
                     </span>
                 </div>
             `;
         });
 
         const resultBox = document.getElementById('resultBox');
-        const weekendBanner = document.getElementById('weekendBanner');
+        const infoBanner = document.getElementById('infoBanner');
         const btnAvanzar = document.getElementById('btnAvanzar');
         const btnSaltar = document.getElementById('btnSaltar');
 
-        if (esFinde) {
-            weekendBanner.style.display = 'block';
-            resultBox.classList.add('weekend');
-            document.getElementById('labelResponsable').innerText = "El próximo Lunes le tocará a:";
-            btnAvanzar.disabled = true;
-            btnSaltar.disabled = true;
-        } else {
-            weekendBanner.style.display = 'none';
-            resultBox.classList.remove('weekend');
-            document.getElementById('labelResponsable').innerText = "Hoy le toca invitar a:";
-            btnAvanzar.disabled = false;
-            btnSaltar.disabled = false;
-        }
-
-        document.getElementById('todayResponsable').innerText = equipo[turnoActual];
+        document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
         const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('todayDate').innerText = new Date().toLocaleDateString('es-ES', opcionesFecha);
 
-        localStorage.setItem('cafe_equipo_fijo', JSON.stringify(equipo));
-        localStorage.setItem('cafe_turno_index', turnoActual);
-    }
-
-    function solicitarNotificaciones() {
-        if ("Notification" in window) {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    mostrarNotificacion();
-                } else {
-                    alert("Permiso de notificaciones denegado.");
-                }
-            });
+        if (esFinde) {
+            infoBanner.style.display = 'block';
+            infoBanner.className = 'info-banner';
+            infoBanner.innerText = "😴 ¡Fin de semana! Control de café pausado.";
+            resultBox.className = 'result-box weekend';
+            document.getElementById('labelResponsable').innerText = "El próximo Lunes le tocará a:";
+            btnAvanzar.disabled = true;
+            btnSaltar.disabled = true;
+        } else if (yaTurnoCumplidoHoy) {
+            infoBanner.style.display = 'block';
+            infoBanner.className = 'info-banner success';
+            infoBanner.innerText = "🎉 ¡El turno de café de hoy ya fue completado!";
+            resultBox.className = 'result-box done';
+            document.getElementById('labelResponsable').innerText = "Hoy cumplió su turno:";
+            btnAvanzar.disabled = true;
+            btnSaltar.disabled = true;
         } else {
-            alert("Tu navegador no soporta notificaciones.");
+            infoBanner.style.display = 'none';
+            resultBox.className = 'result-box';
+            document.getElementById('labelResponsable').innerText = "Hoy le toca invitar a:";
+            btnAvanzar.disabled = false;
+            
+            // Validar límite de 2 saltos por día
+            if (estado.saltosHoy >= 2) {
+                btnSaltar.disabled = true;
+                btnSaltar.innerText = "⏭️ Límite de saltos alcanzado (2/2)";
+            } else {
+                btnSaltar.disabled = false;
+                btnSaltar.innerText = `⏭️ Saltar por ausencia (${estado.saltosHoy}/2 saltos)`;
+            }
         }
     }
 
-    function mostrarNotificacion() {
-        if (Notification.permission === "granted" && !esFinDeSemana()) {
-            new Notification("☕ Alerta de Café TI", {
-                body: `¡Hoy le toca traer el café a: ${equipo[turnoActual]}!`,
-                icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
-            });
-        }
-    }
-
-    function editarNombre(index) {
-        const nuevoNombre = prompt(`Ingresa el nombre del integrante #${index + 1}:`, equipo[index]);
-        if (nuevoNombre) {
-            equipo[index] = nuevoNombre;
+    async function cumplirTurno() {
+        if (esFinDeSemana()) return;
+        const hoy = obtenerFechaHoy();
+        
+        if (confirm(`¿Confirmar que ${equipo[estado.turnoIndex]} cumplió con el café de hoy?`)) {
+            estado.ultimaFechaCumplido = hoy;
+            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             render();
+            await guardarEstadoCloud();
         }
     }
 
-    function avanzarTurno() {
+    async function saltarTurno() {
         if (esFinDeSemana()) return;
-        turnoActual = (turnoActual + 1) % equipo.length;
-        render();
-        mostrarNotificacion();
-    }
+        const hoy = obtenerFechaHoy();
 
-    function saltarTurno() {
-        if (esFinDeSemana()) return;
-        if (confirm(`¿Saltar a ${equipo[turnoActual]} por hoy?`)) {
-            avanzarTurno();
+        if (estado.saltosHoy >= 2) {
+            alert("Ya se han realizado 2 saltos por ausencia el día de hoy.");
+            return;
+        }
+
+        if (confirm(`¿Saltar a ${equipo[estado.turnoIndex]} por ausencia?`)) {
+            estado.saltosHoy++;
+            estado.fechaUltimoSalto = hoy;
+            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            render();
+            await guardarEstadoCloud();
         }
     }
 
-    render();
+    // Cargar datos al entrar a la página
+    cargarEstadoCloud();
+
+    // Consultar cambios en la nube automáticamente cada 10 segundos
+    setInterval(cargarEstadoCloud, 10000);
 </script>
 
 </body>
