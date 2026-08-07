@@ -417,6 +417,13 @@
         notificaciones: []
     };
 
+    // Renderizado inmediato local para evitar pantalla en blanco en móviles
+    document.addEventListener("DOMContentLoaded", () => {
+        const temaGuardado = localStorage.getItem(THEME_KEY) || 'light';
+        aplicarTema(temaGuardado);
+        render(); 
+    });
+
     function reiniciarBaseDeDatosTotal() {
         const userIngresado = prompt("🔒 Introduce el usuario de Administrador:");
         if (userIngresado === null) return;
@@ -770,6 +777,7 @@
         let totalGeneralMes = 0;
 
         const historyBody = document.getElementById('dashHistoryBody');
+        if (!historyBody) return;
         historyBody.innerHTML = '';
 
         if (estado.gastos) {
@@ -926,6 +934,7 @@
         const hoyStr = obtenerFechaFormateada(new Date());
         const yaPagoHoy = estado.ultimaFechaCumplido === hoyStr;
         const container = document.getElementById('rotationContainer');
+        if (!container) return;
         container.innerHTML = '';
 
         let simuladorIndex = estado.turnoIndex;
@@ -991,20 +1000,21 @@
         const btnAvanzar = document.getElementById('btnAvanzar');
         const btnSaltar = document.getElementById('btnSaltar');
 
-        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const todayDateEl = document.getElementById('todayDate');
+        if (todayDateEl) {
+            todayDateEl.innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
 
         if (yaPagoHoy) {
             document.getElementById('labelResponsable').innerText = "El café de hoy ya fue cubierto por:";
             document.getElementById('todayResponsable').innerText = `${estado.ultimoEnCumplir} 🎉`;
-            btnAvanzar.disabled = true;
-            btnSaltar.disabled = true;
-            btnAvanzar.innerText = "☕ ¡TURNO CUMPLIDO!";
+            if (btnAvanzar) { btnAvanzar.disabled = true; btnAvanzar.innerText = "☕ ¡TURNO CUMPLIDO!"; }
+            if (btnSaltar) { btnSaltar.disabled = true; }
         } else {
             document.getElementById('labelResponsable').innerText = "Hoy le toca gastar a:";
             document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
-            btnAvanzar.disabled = false;
-            btnSaltar.disabled = false;
-            btnAvanzar.innerText = "✅ Turno Cumplido";
+            if (btnAvanzar) { btnAvanzar.disabled = false; btnAvanzar.innerText = "✅ Turno Cumplido"; }
+            if (btnSaltar) { btnSaltar.disabled = false; }
         }
 
         calcularDashboard();
@@ -1071,9 +1081,6 @@
             alert("Nombre no válido.");
         }
     }
-
-    const temaGuardado = localStorage.getItem(THEME_KEY) || 'light';
-    aplicarTema(temaGuardado);
 </script>
 
 </body>
