@@ -17,21 +17,28 @@
         .badge.current { background: #a6e3a1; font-weight: bold; }
         .btn-action { background: #fab387; color: #11111b; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 10px; }
         .btn-action:hover { background: #f9e2af; }
+        .btn-action:disabled { background: #585b70; cursor: not-allowed; opacity: 0.6; }
         .btn-secondary { background: #45475a; color: #cdd6f4; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-notify { background: #89b4fa; color: #11111b; border: none; padding: 8px 15px; font-size: 13px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; }
         .result-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: #181825; border: 1px solid #a6e3a1; margin-bottom: 15px; }
+        .result-box.weekend { border-color: #f38ba8; }
         .result-box h2 { color: #a6e3a1; margin: 0 0 5px 0; font-size: 22px; }
+        .result-box.weekend h2 { color: #f38ba8; }
         .result-box p { margin: 0; color: #bac2de; font-size: 14px; }
+        .weekend-banner { background: #f38ba8; color: #11111b; font-weight: bold; padding: 6px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>☕ Rotación de Café - TI</h1>
-    <p class="sub">Turnos fijos secuenciales</p>
+    <p class="sub">Turnos Lunes a Viernes</p>
 
-    <div class="result-box">
-        <p>Hoy le toca invitar a:</p>
+    <div id="weekendBanner" class="weekend-banner">😴 ¡Fin de semana! Control de café pausado.</div>
+
+    <div class="result-box" id="resultBox">
+        <p id="labelResponsable">Hoy le toca invitar a:</p>
         <h2 id="todayResponsable">Cargando...</h2>
         <p id="todayDate" style="color: #6c7086; font-size: 12px; margin-top: 5px;"></p>
     </div>
@@ -41,33 +48,60 @@
     <h3 style="text-align: left; font-size: 15px; color: #f5c2e7; margin-top: 20px; margin-bottom: 10px;">Orden de la Rueda (4 Integrantes):</h3>
     <div class="rotation-list" id="rotationContainer"></div>
 
-    <button class="btn-action" onclick="avanzarTurno()">✅ Turno Cumplido (Avanzar al siguiente)</button>
-    <button class="btn-secondary" onclick="saltarTurno()">⏭️ Saltar persona por ausencia</button>
+    <button class="btn-action" id="btnAvanzar" onclick="avanzarTurno()">✅ Turno Cumplido (Avanzar al siguiente)</button>
+    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar persona por ausencia</button>
 </div>
 
 <script>
-    const integrantesIniciales = ["Compañero 1", "Compañero 2", "Compañero 3", "Compañero 4"];
+    // CAMBIA AQUÍ LOS NOMBRES REALES DE USTEDES 4:
+    const integrantesIniciales = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
 
     let equipo = JSON.parse(localStorage.getItem('cafe_equipo_fijo')) || integrantesIniciales;
     let turnoActual = parseInt(localStorage.getItem('cafe_turno_index')) || 0;
 
+    function esFinDeSemana() {
+        const diaSemana = new Date().getDay();
+        return diaSemana === 0 || diaSemana === 6; // 0 = Domingo, 6 = Sábado
+    }
+
     function render() {
         const container = document.getElementById('rotationContainer');
+        const esFinde = esFinDeSemana();
+
         container.innerHTML = '';
 
         equipo.forEach((nombre, index) => {
             const esSuTurno = index === turnoActual;
             container.innerHTML += `
-                <div class="member ${esSuTurno ? 'active' : ''}">
+                <div class="member ${esSuTurno && !esFinde ? 'active' : ''}">
                     <span onclick="editarNombre(${index})" style="cursor:pointer;" title="Haz clic para cambiar este nombre">
                         ${index + 1}. ${nombre} ✏️
                     </span>
-                    <span class="badge ${esSuTurno ? 'current' : ''}">
-                        ${esSuTurno ? '👉 TURNO HOY' : 'En espera'}
+                    <span class="badge ${esSuTurno && !esFinde ? 'current' : ''}">
+                        ${esSuTurno ? (esFinde ? 'Próximo Lunes' : '👉 TURNO HOY') : 'En espera'}
                     </span>
                 </div>
             `;
         });
+
+        const resultBox = document.getElementById('resultBox');
+        const weekendBanner = document.getElementById('weekendBanner');
+        const btnAvanzar = document.getElementById('btnAvanzar');
+        const btnSaltar = document.getElementById('btnSaltar');
+
+        if (esFinde) {
+            weekendBanner.style.display = 'block';
+            resultBox.classList.add('weekend');
+            document.getElementById('labelResponsable').innerText = "El próximo Lunes le tocará a:";
+            btnAvanzar.disabled = true;
+            btnSaltar.disabled = true;
+        } else {
+            weekendBanner.style.display = 'none';
+            resultBox.classList.remove('weekend');
+            document.getElementById('labelResponsable').innerText = "Hoy le toca invitar a:";
+            btnAvanzar.disabled = false;
+            btnSaltar.disabled = false;
+        }
 
         document.getElementById('todayResponsable').innerText = equipo[turnoActual];
         const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -87,12 +121,12 @@
                 }
             });
         } else {
-            alert("Tu navegador no soporta notificaciones de escritorio.");
+            alert("Tu navegador no soporta notificaciones.");
         }
     }
 
     function mostrarNotificacion() {
-        if (Notification.permission === "granted") {
+        if (Notification.permission === "granted" && !esFinDeSemana()) {
             new Notification("☕ Alerta de Café TI", {
                 body: `¡Hoy le toca traer el café a: ${equipo[turnoActual]}!`,
                 icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
@@ -109,12 +143,14 @@
     }
 
     function avanzarTurno() {
+        if (esFinDeSemana()) return;
         turnoActual = (turnoActual + 1) % equipo.length;
         render();
-        mostrarNotificacion(); // Dispara la notificación al cambiar de turno
+        mostrarNotificacion();
     }
 
     function saltarTurno() {
+        if (esFinDeSemana()) return;
         if (confirm(`¿Saltar a ${equipo[turnoActual]} por hoy?`)) {
             avanzarTurno();
         }
