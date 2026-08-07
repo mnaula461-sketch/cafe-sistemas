@@ -57,7 +57,6 @@
             padding: 20px 15px; 
         }
         
-        /* Barra superior con z-index 102 para estar siempre sobre el menú */
         .top-bar { 
             position: fixed;
             top: 20px;
@@ -65,19 +64,77 @@
             display: flex; 
             gap: 10px; 
             z-index: 102; 
+            flex-wrap: wrap;
         }
 
         .btn-top { 
             background: var(--navy); 
             color: white; 
             border: none; 
-            padding: 10px 16px; 
+            padding: 10px 14px; 
             border-radius: 8px; 
             font-weight: bold; 
             cursor: pointer; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            position: relative;
+            font-size: 13px;
         }
         .btn-top:hover { opacity: 0.9; }
+        .btn-notif-perm { background: var(--gold); color: #000; }
+
+        .notif-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .notif-panel {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            width: 320px;
+            max-height: 400px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            z-index: 105;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .notif-panel.open { display: flex; }
+        .notif-header {
+            background: var(--navy);
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notif-list {
+            overflow-y: auto;
+            max-height: 340px;
+            padding: 10px;
+            margin: 0;
+            list-style: none;
+        }
+        .notif-item {
+            font-size: 11px;
+            padding: 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+        }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-time { font-size: 9px; color: var(--muted); display: block; margin-top: 2px; }
 
         .sidebar { 
             position: fixed; 
@@ -111,7 +168,7 @@
             max-width: 480px; 
             text-align: center; 
             border: 1px solid var(--border); 
-            margin-top: 40px;
+            margin-top: 50px;
         }
         
         h1 { color: var(--navy); font-size: 22px; margin: 0 0 4px 0; }
@@ -181,7 +238,20 @@
 
 <div class="top-bar">
     <button class="btn-top" onclick="toggleSidebar()">📊 Menú</button>
+    <button class="btn-top" onclick="toggleNotifPanel()">🔔 Historial <span class="notif-badge" id="notifBadge">0</span></button>
+    <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">🔔 Activar Notificaciones</button>
     <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Modo Noche</button>
+</div>
+
+<!-- Panel de Notificaciones Desplegable -->
+<div class="notif-panel" id="notifPanel">
+    <div class="notif-header">
+        <span>🔔 Actividad Reciente</span>
+        <button style="background:none; border:none; color:white; cursor:pointer; font-size:11px;" onclick="limpiarNotificaciones()">Limpiar</button>
+    </div>
+    <ul class="notif-list" id="notifList">
+        <li class="notif-item">Sin notificaciones nuevas.</li>
+    </ul>
 </div>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -197,7 +267,11 @@
 
     <div class="stat-card">
         <h4>🏅 Medallas Actuales</h4>
-        <ul class="stat-list" id="dashBadgesList"></ul>
+        <ul class="stat-list" id="dashBadgesList">
+            <li><span>🤌 El Coño:</span> <strong id="badgeCono">Nadie</strong></li>
+            <li><span>💸 El Billeteado:</span> <strong id="badgeAninado">Nadie</strong></li>
+            <li><span>👻 El Ausente:</span> <strong id="badgeAusente">Nadie</strong></li>
+        </ul>
     </div>
 
     <div class="stat-card">
@@ -270,6 +344,7 @@
 
     let miChart = null;
     let usuarioDesglosadoAbierto = null;
+    let notifAbierto = false;
 
     let estado = {
         turnoIndex: 0,
@@ -278,8 +353,52 @@
         gastos: [],
         saltosHistorial: [],
         vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
-        historicoGanadores: []
+        historicoGanadores: [],
+        notificaciones: []
     };
+
+    // Actualizar estado del botón según el permiso actual del navegador
+    function actualizarBotonPermiso() {
+        const btn = document.getElementById('btnPermisoNotif');
+        if (!("Notification" in window)) {
+            btn.style.display = 'none';
+            return;
+        }
+        if (Notification.permission === "granted") {
+            btn.innerText = "🔕 Notificaciones Activas";
+            btn.style.background = "#2E7D32";
+            btn.style.color = "#FFF";
+        } else if (Notification.permission === "denied") {
+            btn.innerText = "❌ Notificaciones Bloqueadas";
+            btn.style.background = "#C62828";
+            btn.style.color = "#FFF";
+        } else {
+            btn.innerText = "🔔 Activar Notificaciones";
+            btn.style.background = "var(--gold)";
+            btn.style.color = "#000";
+        }
+    }
+
+    function solicitarPermisoNotificaciones() {
+        if (!("Notification" in window)) {
+            alert("Tu navegador no soporta notificaciones de escritorio.");
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            actualizarBotonPermiso();
+            if (permission === "granted") {
+                new Notification("☕ Control de Café - TI", {
+                    body: "¡Notificaciones activadas correctamente! Te avisaremos cuando sea tu turno.",
+                    icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
+                });
+            } else {
+                alert("Has bloqueado o ignorado los permisos de notificación. Puedes habilitarlos manualmente en la configuración de tu navegador.");
+            }
+        });
+    }
+
+    let ultimaNotifProcesadaID = 0;
+    let diaNotificadoCache = "";
 
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
@@ -291,13 +410,39 @@
                 gastos: data.gastos ? Object.values(data.gastos) : [],
                 saltosHistorial: data.saltosHistorial ? Object.values(data.saltosHistorial) : [],
                 vacaciones: data.vacaciones ?? { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
-                historicoGanadores: data.historicoGanadores ? Object.values(data.historicoGanadores) : []
+                historicoGanadores: data.historicoGanadores ? Object.values(data.historicoGanadores) : [],
+                notificaciones: data.notificaciones ? Object.values(data.notificaciones) : []
             };
+
+            const hoy = obtenerFechaHoy();
+            const responsableHoy = equipo[estado.turnoIndex];
+
+            // Verificador automático diario: si cambia el día y nadie ha marcado, avisa a todos en el navegador
+            if (diaNotificadoCache !== hoy && estado.ultimaFechaCumplido !== hoy) {
+                diaNotificadoCache = hoy;
+                agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
+            }
+
+            // Lanzar notificación nativa si hay un nuevo registro en Firebase
+            if (estado.notificaciones.length > 0) {
+                const ultima = estado.notificaciones[0];
+                if (ultima && ultima.id && ultima.id !== ultimaNotifProcesadaID) {
+                    ultimaNotifProcesadaID = ultima.id;
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification("☕ Control de Café - TI", {
+                            body: ultima.texto.replace(/\*\*/g, ''), // Limpiar formato markdown
+                            icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
+                        });
+                    }
+                }
+            }
         } else {
             guardarEstadoFirebase();
         }
         verificarAjusteVacaciones();
         render();
+        renderNotificaciones();
+        actualizarBotonPermiso();
         document.getElementById('syncStatus').innerText = '🟢 Conectado en Tiempo Real (Firebase)';
     }, (error) => {
         console.error("Error al sincronizar:", error);
@@ -306,6 +451,71 @@
 
     function guardarEstadoFirebase() {
         dbRef.set(estado);
+    }
+
+    function agregarNotificacion(texto) {
+        if (!estado.notificaciones) estado.notificaciones = [];
+        const horaActual = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const nuevoId = Date.now();
+        
+        estado.notificaciones.unshift({ id: nuevoId, texto: texto, hora: horaActual, leido: false });
+        if (estado.notificaciones.length > 15) estado.notificaciones.pop();
+        
+        ultimaNotifProcesadaID = nuevoId;
+        guardarEstadoFirebase();
+
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("☕ Control de Café - TI", {
+                body: texto.replace(/\*\*/g, ''),
+                icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
+            });
+        }
+    }
+
+    function toggleNotifPanel() {
+        notifAbierto = !notifAbierto;
+        const panel = document.getElementById('notifPanel');
+        panel.classList.toggle('open', notifAbierto);
+        
+        if (notifAbierto && estado.notificaciones) {
+            estado.notificaciones.forEach(n => n.leido = true);
+            guardarEstadoFirebase();
+            renderNotificaciones();
+        }
+    }
+
+    function limpiarNotificaciones() {
+        estado.notificaciones = [];
+        guardarEstadoFirebase();
+    }
+
+    function renderNotificaciones() {
+        const list = document.getElementById('notifList');
+        const badge = document.getElementById('notifBadge');
+        list.innerHTML = '';
+
+        if (!estado.notificaciones || estado.notificaciones.length === 0) {
+            list.innerHTML = '<li class="notif-item">Sin notificaciones registradas.</li>';
+            badge.style.display = 'none';
+            return;
+        }
+
+        let noLeidas = 0;
+        estado.notificaciones.forEach(n => {
+            if (!n.leido) noLeidas++;
+            list.innerHTML += `
+                <li class="notif-item">
+                    ${n.texto.replace(/\*\*/g, '')}
+                    <span class="notif-time">${n.hora}</span>
+                </li>`;
+        });
+
+        if (noLeidas > 0 && !notifAbierto) {
+            badge.innerText = noLeidas;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
     }
 
     function aplicarTema(tema) {
@@ -345,14 +555,15 @@
         
         if (nuevoMonto !== null && !isNaN(parseFloat(nuevoMonto)) && parseFloat(nuevoMonto) >= 0) {
             estado.gastos[indexOriginal].monto = parseFloat(nuevoMonto);
-            guardarEstadoFirebase();
+            agregarNotificacion(`✏️ Se editó el turno de ${gasto.persona} a $${parseFloat(nuevoMonto).toFixed(2)}`);
         }
     }
 
     function eliminarGasto(indexOriginal) {
         if (confirm("¿Estás seguro de eliminar este turno del historial?")) {
+            const eliminado = estado.gastos[indexOriginal];
             estado.gastos.splice(indexOriginal, 1);
-            guardarEstadoFirebase();
+            agregarNotificacion(`🗑️ Se eliminó el registro de café de ${eliminado.persona}`);
         }
     }
 
@@ -408,7 +619,7 @@
                 ausente: elAusente
             });
 
-            guardarEstadoFirebase();
+            agregarNotificacion(`🔒 Se cerró el mes de ${mesNombre}`);
             alert("🏆 ¡Mes guardado con éxito en el Histórico!");
         }
     }
@@ -472,11 +683,9 @@
             if (saltosIndiv[nombre] > maxSaltos && saltosIndiv[nombre] > 0) { maxSaltos = saltosIndiv[nombre]; elFantasma = nombre; }
         });
 
-        document.getElementById('dashBadgesList').innerHTML = `
-            <li><span>🤌 El Coño:</span> <strong id="badgeCono">${elCono}</strong></li>
-            <li><span>💸 El Billeteado:</span> <strong id="badgeAninado">${elAninado}</strong></li>
-            <li><span>👻 El Ausente:</span> <strong id="badgeAusente">${elFantasma}</strong></li>
-        `;
+        document.getElementById('badgeCono').innerText = elCono;
+        document.getElementById('badgeAninado').innerText = elAninado;
+        document.getElementById('badgeAusente').innerText = elFantasma;
 
         const histContainer = document.getElementById('dashHistoricalWinners');
         histContainer.innerHTML = '';
@@ -568,6 +777,7 @@
     function toggleVacaciones(nombre) {
         if (!estado.vacaciones) estado.vacaciones = {};
         estado.vacaciones[nombre] = !estado.vacaciones[nombre];
+        agregarNotificacion(`🏖️ ${nombre} cambió su estado de vacaciones.`);
         verificarAjusteVacaciones();
         guardarEstadoFirebase();
     }
@@ -643,6 +853,8 @@
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoy;
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            
+            agregarNotificacion(`☕ ¡${persona} cumplió su turno de café por $${parseFloat(valor).toFixed(2)}!`);
             verificarAjusteVacaciones();
             guardarEstadoFirebase();
         }
@@ -660,6 +872,8 @@
             if (!estado.saltosHistorial) estado.saltosHistorial = [];
             estado.saltosHistorial.push({ fecha: hoy, persona: persona });
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            
+            agregarNotificacion(`⏭️ Se saltó el turno de ${persona} por ausencia.`);
             verificarAjusteVacaciones();
             guardarEstadoFirebase();
         }
@@ -677,6 +891,7 @@
             equipo[idx1] = equipo[idx2];
             equipo[idx2] = temp;
 
+            agregarNotificacion(`🔄 ${p1} intercambió turnos con ${p2}.`);
             alert(`🤝 Cambio realizado. Ahora le toca a ${equipo[estado.turnoIndex]}.`);
             guardarEstadoFirebase();
         } else if (p2) {
