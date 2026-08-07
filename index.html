@@ -81,6 +81,7 @@
         }
         .btn-top:hover { opacity: 0.9; }
         .btn-notif-perm { background: var(--gold); color: #000; }
+        .btn-reset-db { background: #C62828; color: #FFF; }
 
         .notif-badge {
             position: absolute;
@@ -240,6 +241,7 @@
     <button class="btn-top" onclick="toggleSidebar()">📊 Menú</button>
     <button class="btn-top" onclick="toggleNotifPanel()">🔔 Historial <span class="notif-badge" id="notifBadge">0</span></button>
     <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">🔔 Activar Notificaciones</button>
+    <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">⚠️ Reiniciar BD</button>
     <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Modo Noche</button>
 </div>
 
@@ -342,6 +344,10 @@
     const equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     const THEME_KEY = "cafe_ti_tema";
 
+    const feriados = [
+        "2026-08-10"
+    ];
+
     let miChart = null;
     let usuarioDesglosadoAbierto = null;
     let notifAbierto = false;
@@ -357,7 +363,25 @@
         notificaciones: []
     };
 
-    // Actualizar estado del botón según el permiso actual del navegador
+    function reiniciarBaseDeDatosTotal() {
+        if (confirm("⚠️ ¿Estás seguro de reiniciar toda la base de datos a cero? Se borrará todo el historial y se empezará desde Mauricio.")) {
+            const estadoInicial = {
+                turnoIndex: 0,
+                ultimoEnCumplir: "",
+                ultimaFechaCumplido: "",
+                gastos: [],
+                saltosHistorial: [],
+                vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
+                historicoGanadores: [],
+                notificaciones: []
+            };
+            dbRef.set(estadoInicial).then(() => {
+                alert("🔄 Base de datos reiniciada con éxito.");
+                location.reload();
+            });
+        }
+    }
+
     function actualizarBotonPermiso() {
         const btn = document.getElementById('btnPermisoNotif');
         if (!("Notification" in window)) {
@@ -392,7 +416,7 @@
                     icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
                 });
             } else {
-                alert("Has bloqueado o ignorado los permisos de notificación. Puedes habilitarlos manualmente en la configuración de tu navegador.");
+                alert("Has bloqueado o ignorado los permisos de notificación.");
             }
         });
     }
@@ -414,23 +438,21 @@
                 notificaciones: data.notificaciones ? Object.values(data.notificaciones) : []
             };
 
-            const hoy = obtenerFechaHoy();
+            const hoy = obtenerFechaFormateada(new Date());
             const responsableHoy = equipo[estado.turnoIndex];
 
-            // Verificador automático diario: si cambia el día y nadie ha marcado, avisa a todos en el navegador
             if (diaNotificadoCache !== hoy && estado.ultimaFechaCumplido !== hoy) {
                 diaNotificadoCache = hoy;
                 agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
             }
 
-            // Lanzar notificación nativa si hay un nuevo registro en Firebase
             if (estado.notificaciones.length > 0) {
                 const ultima = estado.notificaciones[0];
                 if (ultima && ultima.id && ultima.id !== ultimaNotifProcesadaID) {
                     ultimaNotifProcesadaID = ultima.id;
                     if ("Notification" in window && Notification.permission === "granted") {
                         new Notification("☕ Control de Café - TI", {
-                            body: ultima.texto.replace(/\*\*/g, ''), // Limpiar formato markdown
+                            body: ultima.texto.replace(/\*\*/g, ''),
                             icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
                         });
                     }
@@ -536,9 +558,24 @@
         document.getElementById('sidebarOverlay').classList.toggle('active');
     }
 
-    function obtenerFechaHoy() {
-        const d = new Date();
-        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    function obtenerFechaFormateada(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function siguienteDiaLaboral(fechaBase) {
+        let d = new Date(fechaBase);
+        d.setDate(d.getDate() + 1);
+        
+        while (true) {
+            const diaSemana = d.getDay();
+            const fechaStr = obtenerFechaFormateada(d);
+            
+            if (diaSemana !== 0 && diaSemana !== 6 && !feriados.includes(fechaStr)) {
+                break; 
+            }
+            d.setDate(d.getDate() + 1);
+        }
+        return d;
     }
 
     function verificarAjusteVacaciones() {
@@ -783,17 +820,42 @@
     }
 
     function render() {
-        const hoy = obtenerFechaHoy();
-        const yaPagoHoy = estado.ultimaFechaCumplido === hoy;
+        const hoyStr = obtenerFechaFormateada(new Date());
+        const yaPagoHoy = estado.ultimaFechaCumplido === hoyStr;
         const container = document.getElementById('rotationContainer');
         container.innerHTML = '';
+
+        let simuladorIndex = estado.turnoIndex;
+        let fechaSimulada = new Date();
+
+        if (yaPagoHoy) {
+            fechaSimulada = siguienteDiaLaboral(fechaSimulada);
+        }
+
+        const infoFechasTurnos = {};
+        for (let i = 0; i < equipo.length; i++) {
+            while (estado.vacaciones && estado.vacaciones[equipo[simuladorIndex]]) {
+                simuladorIndex = (simuladorIndex + 1) % equipo.length;
+            }
+
+            const integrante = equipo[simuladorIndex];
+            
+            if (i === 0) {
+                infoFechasTurnos[integrante] = yaPagoHoy ? "PAGADO HOY" : "TURNO HOY";
+            } else {
+                fechaSimulada = siguienteDiaLaboral(fechaSimulada);
+                infoFechasTurnos[integrante] = fechaSimulada.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+            }
+
+            simuladorIndex = (simuladorIndex + 1) % equipo.length;
+        }
 
         equipo.forEach((nombre, index) => {
             const esElActual = index === estado.turnoIndex;
             const esElUltimoQuePago = nombre === estado.ultimoEnCumplir && yaPagoHoy;
             const estaEnVacaciones = estado.vacaciones ? estado.vacaciones[nombre] : false;
 
-            let badgeText = 'En espera';
+            let badgeText = infoFechasTurnos[nombre] || 'En espera';
             let classMember = '';
             let classBadge = '';
 
@@ -803,7 +865,7 @@
             } else if (esElUltimoQuePago) {
                 badgeText = '✅ PAGADO HOY';
                 classMember = 'completed'; classBadge = 'done';
-            } else if (esElActual) {
+            } else if (esElActual && !yaPagoHoy) {
                 badgeText = '👉 TURNO HOY';
                 classMember = 'active'; classBadge = 'current';
             }
@@ -838,8 +900,8 @@
     }
 
     function cumplirTurno() {
-        const hoy = obtenerFechaHoy();
-        if (estado.ultimaFechaCumplido === hoy) {
+        const hoyStr = obtenerFechaFormateada(new Date());
+        if (estado.ultimaFechaCumplido === hoyStr) {
             alert("⚠️ Ya se registró el café el día de hoy.");
             return;
         }
@@ -849,9 +911,9 @@
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
             if (!estado.gastos) estado.gastos = [];
-            estado.gastos.push({ fecha: hoy, persona: persona, monto: parseFloat(valor) });
+            estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor) });
             estado.ultimoEnCumplir = persona;
-            estado.ultimaFechaCumplido = hoy;
+            estado.ultimaFechaCumplido = hoyStr;
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             
             agregarNotificacion(`☕ ¡${persona} cumplió su turno de café por $${parseFloat(valor).toFixed(2)}!`);
@@ -861,8 +923,8 @@
     }
 
     function saltarTurno() {
-        const hoy = obtenerFechaHoy();
-        if (estado.ultimaFechaCumplido === hoy) {
+        const hoyStr = obtenerFechaFormateada(new Date());
+        if (estado.ultimaFechaCumplido === hoyStr) {
             alert("⚠️ Ya se registró el café el día de hoy.");
             return;
         }
@@ -870,7 +932,7 @@
         const persona = equipo[estado.turnoIndex];
         if (confirm(`¿Saltar a ${persona} por ausencia hoy?`)) {
             if (!estado.saltosHistorial) estado.saltosHistorial = [];
-            estado.saltosHistorial.push({ fecha: hoy, persona: persona });
+            estado.saltosHistorial.push({ fecha: hoyStr, persona: persona });
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             
             agregarNotificacion(`⏭️ Se saltó el turno de ${persona} por ausencia.`);
