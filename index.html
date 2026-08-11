@@ -555,7 +555,7 @@
             </div>
 
             <div>
-                <h3 class="section-title">✨ Rotación del Equipo de TI:</h3>
+                <h3 class="section-title">✨ Rotación del Equipo:</h3>
                 <div class="rotation-list" id="rotationContainer"></div>
             </div>
         </div>
@@ -614,6 +614,7 @@
         const temaGuardado = localStorage.getItem(THEME_KEY) || 'dark';
         aplicarTema(temaGuardado);
         render(); 
+        iniciarTemporizadorNotificaciones();
     });
 
     function reiniciarBaseDeDatosTotal() {
@@ -681,6 +682,34 @@
                 alert("Has bloqueado o ignorado los permisos de notificación.");
             }
         });
+    }
+
+    // Verificador periódico para notificar a las 8:00 y 8:30 a.m. (requiere pestaña abierta)
+    let ultimaHoraNotificada = "";
+    function iniciarTemporizadorNotificaciones() {
+        setInterval(() => {
+            const ahora = new Date();
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const horaActualStr = `${horas}:${minutos}`;
+            const fechaHoyStr = obtenerFechaFormateada(ahora);
+
+            // Verificamos si es exactamente 08:00 o 08:30 y si no se ha notificado ya en este mismo minuto
+            if ((horaActualStr === "08:00" || horaActualStr === "08:30") && ultimaHoraNotificada !== `${fechaHoyStr} ${horaActualStr}`) {
+                ultimaHoraNotificada = `${fechaHoyStr} ${horaActualStr}`;
+                const responsableHoy = equipo[estado.turnoIndex];
+                
+                const mensajeAlerta = `☕ ¡Recordatorio de Café! Hoy a las ${horaActualStr} le toca poner el café a **${responsableHoy}**.`;
+                agregarNotificacion(mensajeAlerta);
+
+                if (Notification.permission === "granted") {
+                    new Notification("☕ Control de Café - TI", {
+                        body: `¡Atención! Hoy le toca poner el café a ${responsableHoy}.`,
+                        icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
+                    });
+                }
+            }
+        }, 10000); // Revisa cada 10 segundos
     }
 
     let diaNotificadoCache = "";
