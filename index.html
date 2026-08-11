@@ -97,11 +97,10 @@
             border: 2px solid var(--top-border);
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             align-items: center;
-            overflow-x: auto; /* Deslizable horizontalmente en móviles */
+            overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Ocultar barra de desplazamiento estética para navegadores basados en Webkit */
         .top-bar::-webkit-scrollbar {
             height: 4px;
         }
@@ -124,8 +123,8 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            flex: 0 0 auto; /* Evita que los botones se compriman en móvil y permite scroll */
-            min-width: 110px; /* Tamaño consistente para deslizar */
+            flex: 0 0 auto;
+            min-width: 110px;
             transition: all 0.25s ease;
             white-space: nowrap;
             box-shadow: 0 3px 10px rgba(0,0,0,0.2);
@@ -133,7 +132,7 @@
 
         @media (min-width: 900px) {
             .btn-top {
-                flex: 1; /* En PC se distribuyen equitativamente */
+                flex: 1;
                 min-width: 0;
             }
         }
@@ -397,6 +396,7 @@
         }
         .btn-secondary svg { width: 18px; height: 18px; fill: currentColor; }
         .btn-secondary:hover { border-color: var(--gold); background: var(--navy-light); transform: translateY(-1px); box-shadow: 0 6px 15px rgba(255, 184, 0, 0.2); }
+        .btn-secondary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; opacity: 0.5; box-shadow: none; transform: none; }
 
         .btn-mini { background: var(--navy-light); color: var(--text); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .btn-mini:hover { border-color: var(--gold); }
@@ -449,7 +449,6 @@
 </head>
 <body>
 
-<!-- Barra superior deslizable en móvil para mostrar todas las opciones -->
 <div class="top-bar">
     <button class="btn-top" onclick="toggleSidebar()">
         <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> Menú
@@ -458,7 +457,7 @@
         <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Historial <span class="notif-badge" id="notifBadge">0</span>
     </button>
     <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">
-        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Activar Notificaciones
     </button>
     <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Reiniciar BD
@@ -550,13 +549,13 @@
                 <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">
                     <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia
                 </button>
-                <button class="btn-secondary" onclick="intercambiarTurno()">
+                <button class="btn-secondary" id="btnCambiar" onclick="intercambiarTurno()">
                     <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg> Cambiar Turno
                 </button>
             </div>
 
             <div>
-                <h3 class="section-title">✨ Rotación del Equipo:</h3>
+                <h3 class="section-title">✨ Rotación del Equipo de TI:</h3>
                 <div class="rotation-list" id="rotationContainer"></div>
             </div>
         </div>
@@ -643,7 +642,7 @@
                 });
             }
         } else {
-            alert("❌ Usuario o contraseña incorrectos. No se puede reiniciar la base de datos.");
+            alert("❌ Usuario or contraseña incorrectos. No se puede reiniciar la base de datos.");
         }
     }
 
@@ -654,14 +653,14 @@
             return;
         }
         if (Notification.permission === "granted") {
-            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Activar Notificaciones`;
             btn.classList.add('active-perm');
         } else if (Notification.permission === "denied") {
             btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Bloqueadas`;
             btn.style.borderColor = "var(--danger)";
             btn.style.color = "var(--danger)";
         } else {
-            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas`;
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Activar Notificaciones`;
             btn.classList.remove('active-perm');
         }
     }
@@ -1193,6 +1192,7 @@
 
         const btnAvanzar = document.getElementById('btnAvanzar');
         const btnSaltar = document.getElementById('btnSaltar');
+        const btnCambiar = document.getElementById('btnCambiar');
         const todayDateEl = document.getElementById('todayDate');
         if (todayDateEl) {
             todayDateEl.innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -1203,6 +1203,7 @@
             document.getElementById('todayResponsable').innerText = `${estado.ultimoEnCumplir} 🎉`;
             if (btnAvanzar) { btnAvanzar.disabled = true; btnAvanzar.innerText = "☕ ¡TURNO CUMPLIDO!"; }
             if (btnSaltar) { btnSaltar.disabled = true; }
+            if (btnCambiar) { btnCambiar.disabled = true; }
         } else {
             document.getElementById('labelResponsable').innerText = "Hoy le toca gastar a:";
             document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
@@ -1211,6 +1212,7 @@
                 btnAvanzar.innerHTML = `<svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido`; 
             }
             if (btnSaltar) { btnSaltar.disabled = false; }
+            if (btnCambiar) { btnCambiar.disabled = false; }
         }
 
         calcularDashboard();
@@ -1279,6 +1281,12 @@
     }
 
     function intercambiarTurno() {
+        const hoyStr = obtenerFechaFormateada(new Date());
+        if (estado.ultimaFechaCumplido === hoyStr) {
+            alert("⚠️ Ya se registró el turno del día de hoy.");
+            return;
+        }
+
         const p1 = equipo[estado.turnoIndex];
         const p2 = prompt(`El turno actual es de ${p1}. ¿Con quién deseas intercambiar? (Mauricio, Fabricio, Danny, Sebastian):`);
         if (equipo.includes(p2) && p2 !== p1) {
