@@ -184,7 +184,7 @@
         .sidebar-overlay.active { display: block; }
 
         .stat-card { background: var(--inner); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 15px; }
-        .stat-card h4 { margin: 0 0 8px 0; color: var(--navy); font-size: 14px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+        .stat-card h4 { margin: 0 0 8px 0; color: var(--navy); font-size: 14px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
         .stat-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
         .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; gap: 4px; }
 
@@ -382,9 +382,9 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const dbRef = db.ref('control_cafe');
+    const dbRef = db.ref('control_cafe_test');
 
-    const equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
+    let equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     const THEME_KEY = "cafe_ti_tema";
 
     const ADMIN_USER = "admin";
@@ -494,6 +494,9 @@
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            if (data.equipo && Array.isArray(data.equipo)) {
+                equipo = data.equipo;
+            }
             estado = {
                 turnoIndex: data.turnoIndex ?? 0,
                 ultimoEnCumplir: data.ultimoEnCumplir ?? "",
@@ -539,7 +542,11 @@
     });
 
     function guardarEstadoFirebase() {
-        dbRef.set(estado);
+        const datosAGuardar = {
+            ...estado,
+            equipo: equipo
+        };
+        dbRef.set(datosAGuardar);
     }
 
     function agregarNotificacion(texto) {
@@ -671,8 +678,16 @@
     }
 
     function verificarAjusteVacaciones() {
+        if (!estado.vacaciones) return;
+
+        // Protección antivuelco: si todos están de vacaciones, se desactivan automáticamente
+        const todosDeVacaciones = equipo.every(nombre => estado.vacaciones[nombre]);
+        if (todosDeVacaciones) {
+            Object.keys(estado.vacaciones).forEach(k => estado.vacaciones[k] = false);
+        }
+
         let intentos = 0;
-        while (estado.vacaciones && estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
+        while (estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             intentos++;
         }
@@ -883,7 +898,7 @@
             
             expList.innerHTML += `
                 <li style="margin-bottom: 6px;">
-                    <div style="display:flex; justify-content:space-width; width:100%; align-items:center; justify-content: space-between;">
+                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                         <span>${nombre}:</span> 
                         <div>
                             <strong>$${valGasto.toFixed(2)}</strong> 
@@ -913,38 +928,49 @@
         vacList.innerHTML = '';
         equipo.forEach(nombre => {
             const estaDeVaca = estado.vacaciones ? estado.vacaciones[nombre] : false;
+            const esTurnoActual = (nombre === equipo[estado.turnoIndex]);
+            
+            let htmlAcciones = '';
+            if (estaDeVaca) {
+                htmlAcciones = `<button class="vaca-revert" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>`;
+            } else if (esTurnoActual) {
+                htmlAcciones = `<button class="vaca-toggle off" onclick="toggleVacaciones('${nombre}')">🏖️ Marcar Vacaciones</button>`;
+            } else {
+                htmlAcciones = `<span style="font-size: 11px; color: var(--muted);">No es su turno</span>`;
+            }
+
             vacList.innerHTML += `
                 <li>
                     <span>${nombre}:</span>
                     <div class="vaca-container">
-                        <button class="vaca-toggle ${estaDeVaca ? 'on' : 'off'}" onclick="toggleVacaciones('${nombre}')">
-                            ${estaDeVaca ? '🏖️ En Vacaciones' : '💼 Trabajando'}
-                        </button>
-                        <button class="vaca-revert" title="Regresar turno a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>
+                        ${htmlAcciones}
                     </div>
                 </li>`;
         });
     }
 
     function toggleVacaciones(nombre) {
-        if (!estado.vacaciones) estado.vacaciones = {};
-        estado.vacaciones[nombre] = !estado.vacaciones[nombre];
+        if (confirm(`¿Estás seguro de que ${nombre} está de vacaciones?`)) {
+            if (!estado.vacaciones) estado.vacaciones = {};
+            estado.vacaciones[nombre] = true;
 
-        agregarNotificacion(`🏖️ ${nombre} cambió su estado de vacaciones.`);
-        verificarAjusteVacaciones();
-        guardarEstadoFirebase();
+            agregarNotificacion(`🏖️ ${nombre} ha entrado en modo vacaciones.`);
+            verificarAjusteVacaciones();
+            guardarEstadoFirebase();
+        }
     }
 
     function regresarTurnoA(nombre) {
         const idxPersona = equipo.indexOf(nombre);
         if (idxPersona !== -1) {
-            estado.turnoIndex = idxPersona;
             if (estado.vacaciones && estado.vacaciones[nombre]) {
                 estado.vacaciones[nombre] = false;
             }
-            agregarNotificacion(`↩️ Se devolvió el turno activo a ${nombre}.`);
+            estado.turnoIndex = idxPersona;
+
+            agregarNotificacion(`↩️ ${nombre} ha regresado de vacaciones y retoma su turno.`);
             guardarEstadoFirebase();
-            alert(`✅ Turno devuelto a ${nombre} con éxito.`);
+            alert(`✅ ${nombre} ha vuelto al estado activo con éxito.`);
         }
     }
 
@@ -957,12 +983,8 @@
 
         let simuladorIndex = estado.turnoIndex;
         let fechaSimulada = new Date();
-
-        if (yaPagoHoy) {
-            fechaSimulada = siguienteDiaLaboral(fechaSimulada);
-        }
-
         const infoFechasTurnos = {};
+        
         for (let i = 0; i < equipo.length; i++) {
             while (estado.vacaciones && estado.vacaciones[equipo[simuladorIndex]]) {
                 simuladorIndex = (simuladorIndex + 1) % equipo.length;
@@ -1005,6 +1027,13 @@
                 classBadge = 'current';
             }
 
+            let botonAccionTurno = '';
+            if (estaEnVacaciones) {
+                botonAccionTurno = `<button class="vaca-revert" title="Regresar de vacaciones a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>`;
+            } else if (esElActual) {
+                botonAccionTurno = `<button class="vaca-toggle off" style="padding: 3px 6px;" title="Marcar de vacaciones" onclick="toggleVacaciones('${nombre}')">🏖️ Vacaciones</button>`;
+            }
+
             container.innerHTML += `
                 <div class="member ${classMember}">
                     <div style="display: flex; align-items: center; gap: 10px;">
@@ -1012,7 +1041,7 @@
                         <span>${index + 1}. ${nombre}</span>
                     </div>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <button class="vaca-revert" style="padding: 3px 6px;" title="Regresar turno a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>
+                        ${botonAccionTurno}
                         <span class="badge ${classBadge}">${badgeText}</span>
                     </div>
                 </div>`;
@@ -1067,19 +1096,43 @@
     function saltarTurno() {
         const hoyStr = obtenerFechaFormateada(new Date());
         if (estado.ultimaFechaCumplido === hoyStr) {
-            alert("⚠️ Ya se registró el café el día de hoy.");
+            alert("⚠️ Ya se registró el turno del día de hoy.");
             return;
         }
 
-        const persona = equipo[estado.turnoIndex];
-        if (confirm(`¿Saltar a ${persona} por ausencia hoy?`)) {
+        const personaAusente = equipo[estado.turnoIndex];
+        const disponibles = equipo.filter(nombre => nombre !== personaAusente && !(estado.vacaciones && estado.vacaciones[nombre]));
+
+        if (disponibles.length === 0) {
+            alert("⚠️ No hay más compañeros disponibles para saltar (todos están ausentes o de vacaciones).");
+            return;
+        }
+
+        const listaSugerida = disponibles.join(", ");
+        const reemplazo = prompt(`⚠️ ${personaAusente} está ausente hoy.\n\nEscribe exactamente el nombre del compañero que asumirá el turno de hoy (${listaSugerida}):`);
+
+        if (reemplazo === null) return;
+
+        const nombreLimpio = reemplazo.trim();
+
+        if (!disponibles.includes(nombreLimpio)) {
+            alert(`❌ "${nombreLimpio}" no es un miembro válido o disponible. Por favor, introduce un nombre correcto de la lista.`);
+            return;
+        }
+
+        if (confirm(`¿Confirmas que ${nombreLimpio} asumirá el turno de hoy en lugar de ${personaAusente}?`)) {
+            const idxAusente = equipo.indexOf(personaAusente);
+            const idxReemplazo = equipo.indexOf(nombreLimpio);
+
+            equipo[idxAusente] = nombreLimpio;
+            equipo[idxReemplazo] = personaAusente;
+
             if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
-            estado.saltosHistorial.push({ fecha: hoyStr, persona: persona });
-            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
-            
-            agregarNotificacion(`⏭️ Se saltó el turno de ${persona} por ausencia.`);
-            verificarAjusteVacaciones();
+            estado.saltosHistorial.push({ fecha: hoyStr, persona: personaAusente });
+
+            agregarNotificacion(`⏭️ ${personaAusente} estuvo ausente; **${nombreLimpio}** asumió su turno hoy.`);
             guardarEstadoFirebase();
+            alert(`✅ Turno transferido con éxito a ${nombreLimpio} para hoy.`);
         }
     }
 
