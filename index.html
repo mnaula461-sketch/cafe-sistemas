@@ -186,7 +186,7 @@
         .stat-card { background: var(--inner); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 15px; }
         .stat-card h4 { margin: 0 0 8px 0; color: var(--navy); font-size: 14px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
         .stat-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-        .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; }
+        .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; gap: 4px; }
 
         .chart-container {
             position: relative;
@@ -267,9 +267,12 @@
         .user-breakdown { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 6px; display: none; }
         .user-breakdown.active { display: block; }
 
+        .vaca-container { display: flex; gap: 4px; align-items: center; }
         .vaca-toggle { cursor: pointer; border: none; padding: 4px 8px; font-size: 10px; border-radius: 4px; font-weight: bold; }
         .vaca-toggle.off { background: #FFCDD2; color: #B71C1C; }
         .vaca-toggle.on { background: #C8E6C9; color: #1B5E20; }
+        .vaca-revert { cursor: pointer; background: var(--navy); color: white; border: none; padding: 4px 6px; font-size: 10px; border-radius: 4px; font-weight: bold; }
+        .vaca-revert:hover { opacity: 0.8; }
 
         .status-sync { font-size: 11px; color: var(--muted); margin-top: 12px; }
     </style>
@@ -330,7 +333,7 @@
     </div>
 
     <div class="stat-card">
-        <h4>🏖️ Modo Vacaciones</h4>
+        <h4>🏖️ Modo Vacaciones & Turnos</h4>
         <ul class="stat-list" id="dashVacacionesList"></ul>
     </div>
 
@@ -880,7 +883,7 @@
             
             expList.innerHTML += `
                 <li style="margin-bottom: 6px;">
-                    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <div style="display:flex; justify-content:space-width; width:100%; align-items:center; justify-content: space-between;">
                         <span>${nombre}:</span> 
                         <div>
                             <strong>$${valGasto.toFixed(2)}</strong> 
@@ -913,9 +916,12 @@
             vacList.innerHTML += `
                 <li>
                     <span>${nombre}:</span>
-                    <button class="vaca-toggle ${estaDeVaca ? 'on' : 'off'}" onclick="toggleVacaciones('${nombre}')">
-                        ${estaDeVaca ? '🏖️ En Vacaciones' : '💼 Trabajando'}
-                    </button>
+                    <div class="vaca-container">
+                        <button class="vaca-toggle ${estaDeVaca ? 'on' : 'off'}" onclick="toggleVacaciones('${nombre}')">
+                            ${estaDeVaca ? '🏖️ En Vacaciones' : '💼 Trabajando'}
+                        </button>
+                        <button class="vaca-revert" title="Regresar turno a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>
+                    </div>
                 </li>`;
         });
     }
@@ -923,9 +929,23 @@
     function toggleVacaciones(nombre) {
         if (!estado.vacaciones) estado.vacaciones = {};
         estado.vacaciones[nombre] = !estado.vacaciones[nombre];
+
         agregarNotificacion(`🏖️ ${nombre} cambió su estado de vacaciones.`);
         verificarAjusteVacaciones();
         guardarEstadoFirebase();
+    }
+
+    function regresarTurnoA(nombre) {
+        const idxPersona = equipo.indexOf(nombre);
+        if (idxPersona !== -1) {
+            estado.turnoIndex = idxPersona;
+            if (estado.vacaciones && estado.vacaciones[nombre]) {
+                estado.vacaciones[nombre] = false;
+            }
+            agregarNotificacion(`↩️ Se devolvió el turno activo a ${nombre}.`);
+            guardarEstadoFirebase();
+            alert(`✅ Turno devuelto a ${nombre} con éxito.`);
+        }
     }
 
     function render() {
@@ -991,7 +1011,10 @@
                         <img src="${avatares[nombre]}" alt="${nombre}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border);">
                         <span>${index + 1}. ${nombre}</span>
                     </div>
-                    <span class="badge ${classBadge}">${badgeText}</span>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button class="vaca-revert" style="padding: 3px 6px;" title="Regresar turno a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>
+                        <span class="badge ${classBadge}">${badgeText}</span>
+                    </div>
                 </div>`;
         });
 
