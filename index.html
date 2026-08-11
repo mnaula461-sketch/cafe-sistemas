@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,58 +15,70 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s; }
         
         :root {
-            --bg-body: linear-gradient(135deg, #E6E4F0 0%, #FAF9FC 100%);
-            --navy: #2B2A6B;
-            --navy-light: #3D3B8E;
+            --bg-body-overlay: rgba(8, 7, 11, 0.88);
+            --navy: #13121D;
+            --navy-light: #1E1C2E;
+            --gold: #FFB800;
+            --card: rgba(18, 17, 26, 0.92);
+            --inner: rgba(26, 24, 36, 0.95);
+            --text: #E6E5F5;
+            --muted: #9E9CBE;
+            --border: #2A283D;
+            --green: #4ADE80;
+            --green-bg: rgba(19, 46, 31, 0.8);
+            --danger: #F87171;
+            --history-th: #1E1C2E;
+            
+            --top-bar-bg: rgba(18, 17, 26, 0.90);
+            --top-btn-bg: #221F30;
+            --top-btn-hover: #312E46;
+            --top-btn-text: #FFF;
+            --top-border: rgba(255, 184, 0, 0.4);
+        }
+
+        [data-theme="light"] {
+            --bg-body-overlay: rgba(244, 244, 246, 0.85);
+            --navy: #13121D;
+            --navy-light: #2B2A6B;
             --gold: #D39E2A;
-            --card: #FFFFFF;
-            --inner: #F3F2F8;
+            --card: rgba(255, 255, 255, 0.94);
+            --inner: rgba(243, 242, 248, 0.95);
             --text: #1E1D45;
             --muted: #5C5B82;
             --border: #D1CFE2;
             --green: #2E7D32;
-            --green-bg: #C8E6C9;
+            --green-bg: rgba(200, 230, 201, 0.8);
             --danger: #C62828;
             --history-th: #2B2A6B;
-            
-            --top-bar-bg: rgba(255, 255, 255, 0.85);
-            --top-btn-bg: #FFFFFF;
-            --top-btn-hover: #F0EFEF;
-            --top-btn-text: #2B2A6B;
-            --top-border: rgba(43, 42, 107, 0.15);
-        }
 
-        [data-theme="dark"] {
-            --bg-body: linear-gradient(135deg, #0F0F1A 0%, #1A192B 100%);
-            --navy: #7A78E0;
-            --navy-light: #9492EC;
-            --gold: #F1B838;
-            --card: #18172A;
-            --inner: #23223A;
-            --text: #E6E5F5;
-            --muted: #9E9CBE;
-            --border: #3A3859;
-            --green: #81C784;
-            --green-bg: #1B3821;
-            --danger: #E57373;
-            --history-th: #33315C;
-
-            --top-bar-bg: rgba(24, 23, 42, 0.85);
-            --top-btn-bg: #23223A;
-            --top-btn-hover: #2F2D4E;
-            --top-btn-text: #E6E5F5;
-            --top-border: rgba(230, 229, 245, 0.15);
+            --top-bar-bg: rgba(255, 255, 255, 0.92);
+            --top-btn-bg: #F0EFEF;
+            --top-btn-hover: #E2E0E0;
+            --top-btn-text: #1E1D45;
+            --top-border: rgba(211, 158, 42, 0.5);
         }
 
         body { 
-            background: var(--bg-body); 
+            background: url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+            background-size: cover;
             color: var(--text); 
             display: flex; 
             flex-direction: column;
             align-items: center; 
             min-height: 100vh; 
             margin: 0; 
-            padding: 20px 15px; 
+            padding: 105px 15px 30px 15px; 
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body-overlay);
+            z-index: -1;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
         
         .top-bar { 
@@ -75,64 +87,77 @@
             left: 20px;
             right: 20px;
             display: flex; 
-            gap: 8px; 
+            gap: 12px; 
             z-index: 102; 
-            flex-wrap: wrap;
             background: var(--top-bar-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            padding: 8px 12px;
-            border-radius: 12px;
-            border: 1px solid var(--top-border);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: 2px solid var(--top-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             align-items: center;
         }
 
         .btn-top { 
             background: var(--top-btn-bg); 
             color: var(--top-btn-text); 
-            border: 1px solid var(--top-border); 
-            padding: 7px 12px; 
-            border-radius: 8px; 
-            font-weight: 600; 
+            border: 2px solid var(--border); 
+            padding: 11px 14px; 
+            border-radius: 12px; 
+            font-weight: 800; 
             cursor: pointer; 
             position: relative;
-            font-size: 12px;
+            font-size: 14px; /* Letras más grandes */
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
-        .btn-top:hover { background: var(--top-btn-hover); transform: translateY(-1px); }
+        .btn-top svg { width: 18px; height: 18px; fill: currentColor; }
+        .btn-top:hover { 
+            background: var(--top-btn-hover); 
+            transform: translateY(-2px); 
+            border-color: var(--gold); 
+            box-shadow: 0 6px 20px rgba(255, 184, 0, 0.35);
+            z-index: 10;
+        }
         
         .btn-notif-perm { border-color: var(--gold); color: var(--gold); }
         .btn-notif-perm.active-perm { background: var(--green-bg); color: var(--green); border-color: var(--green); }
         
-        .btn-reset-db { color: var(--danger); border-color: rgba(198, 40, 40, 0.3); }
-        .btn-reset-db:hover { background: rgba(198, 40, 40, 0.1); }
+        .btn-reset-db { color: var(--danger); border-color: rgba(248, 113, 113, 0.5); }
+        .btn-reset-db:hover { background: rgba(248, 113, 113, 0.15); border-color: var(--danger); box-shadow: 0 6px 20px rgba(248, 113, 113, 0.3); }
 
         .notif-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
+            top: -6px;
+            right: -6px;
             background: var(--danger);
             color: white;
-            font-size: 9px;
-            padding: 2px 5px;
+            font-size: 10px;
+            padding: 3px 7px;
             border-radius: 10px;
             display: none;
             font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .notif-panel {
             position: fixed;
-            top: 70px;
+            top: 85px;
             left: 20px;
-            width: 320px;
-            max-height: 400px;
+            width: 340px;
+            max-height: 420px;
             background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--gold);
+            border-radius: 14px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             z-index: 105;
             display: none;
             flex-direction: column;
@@ -140,157 +165,293 @@
         }
         .notif-panel.open { display: flex; }
         .notif-header {
-            background: var(--navy);
-            color: white;
-            padding: 10px 15px;
-            font-weight: bold;
-            font-size: 13px;
+            background: var(--navy-light);
+            color: var(--text);
+            padding: 12px 16px;
+            font-weight: 900;
+            font-size: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 2px solid var(--border);
         }
         .notif-list {
             overflow-y: auto;
-            max-height: 340px;
+            max-height: 350px;
             padding: 10px;
             margin: 0;
             list-style: none;
         }
         .notif-item {
-            font-size: 11px;
-            padding: 8px;
+            font-size: 12px;
+            padding: 10px;
             border-bottom: 1px solid var(--border);
             color: var(--text);
+            font-weight: 600;
         }
         .notif-item:last-child { border-bottom: none; }
-        .notif-time { font-size: 9px; color: var(--muted); display: block; margin-top: 2px; }
+        .notif-time { font-size: 10px; color: var(--muted); display: block; margin-top: 3px; font-weight: normal; }
 
         .sidebar { 
             position: fixed; 
             top: 0; 
-            left: -380px; 
-            width: 380px; 
+            left: -440px; 
+            width: 420px; 
             height: 100%; 
             background: var(--card); 
+            backdrop-filter: blur(20px);
             border-right: 3px solid var(--gold); 
-            box-shadow: 5px 0 20px rgba(0,0,0,0.3); 
-            transition: left 0.3s ease; 
+            box-shadow: 15px 0 40px rgba(0,0,0,0.7); 
+            transition: left 0.35s cubic-bezier(0.1, 0.9, 0.2, 1); 
             z-index: 101; 
-            padding: 80px 20px 20px 20px; 
+            padding: 95px 22px 25px 22px; 
             overflow-y: auto; 
         }
         .sidebar.open { left: 0; }
-        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; z-index: 100; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: none; z-index: 100; backdrop-filter: blur(5px); }
         .sidebar-overlay.active { display: block; }
 
-        .stat-card { background: var(--inner); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 15px; }
-        .stat-card h4 { margin: 0 0 8px 0; color: var(--navy); font-size: 14px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
-        .stat-list { list-style: none; padding: 0; margin: 0; font-size: 13px; }
-        .stat-list li { display: flex; justify-content: space-between; padding: 4px 0; align-items: center; flex-wrap: wrap; gap: 4px; }
+        .stat-card { 
+            background: var(--inner); 
+            border: 2px solid var(--border); 
+            border-radius: 16px; 
+            padding: 18px; 
+            margin-bottom: 18px; 
+            position: relative;
+            overflow: hidden;
+            background-image: radial-gradient(circle at top right, rgba(255, 184, 0, 0.12), transparent 60%);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .stat-card h4 { 
+            margin: 0 0 12px 0; 
+            color: var(--gold); 
+            font-size: 14px; /* Letras más grandes */
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            border-bottom: 2px dashed var(--border); 
+            padding-bottom: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            text-transform: uppercase; 
+        }
+        .stat-list { list-style: none; padding: 0; margin: 0; font-size: 14px; /* Letras más grandes */ }
+        .stat-list li { display: flex; justify-content: space-between; padding: 8px 0; align-items: center; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
         .chart-container {
             position: relative;
             width: 100%;
-            height: 180px;
-            min-height: 180px;
+            height: 190px;
+            min-height: 190px;
         }
         canvas#gastosChart {
             width: 100% !important;
-            height: 180px !important;
+            height: 190px !important;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
+            transition: max-width 0.3s ease;
+        }
+
+        @media (min-width: 900px) {
+            .main-container {
+                max-width: 860px;
+            }
+            .card-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 24px;
+                align-items: start;
+            }
         }
 
         .card { 
             background: var(--card); 
-            padding: 30px 25px; 
-            border-radius: 20px; 
-            box-shadow: 0 12px 35px rgba(0,0,0,0.25); 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 35px 30px; 
+            border-radius: 22px; 
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5); 
             width: 100%; 
-            max-width: 480px; 
             text-align: center; 
             border: 1px solid var(--border); 
-            margin-top: 70px;
+            position: relative;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(255, 184, 0, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(74, 222, 128, 0.05) 0%, transparent 40%);
         }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            z-index: 2;
+        }
+
+        h1 { color: var(--text); font-size: 26px; margin: 0 0 6px 0; font-weight: 900; letter-spacing: 0.5px; }
+        p.sub { color: var(--gold); font-size: 13px; margin-bottom: 22px; letter-spacing: 2.5px; text-transform: uppercase; font-weight: 800; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         
-        h1 { color: var(--navy); font-size: 22px; margin: 0 0 4px 0; }
-        p.sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; letter-spacing: 0.5px; }
-        
-        .rotation-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+        .rotation-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; text-align: left; }
         
         .member { 
             background: var(--inner); 
-            padding: 10px 14px; 
-            border-radius: 10px; 
-            border: 1px solid var(--border); 
+            padding: 14px 18px; 
+            border-radius: 14px; 
+            border: 2px solid var(--border); 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            font-weight: bold; 
-            font-size: 14px; 
+            font-weight: 800; 
+            font-size: 14px; /* Letras más grandes */
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.08) 100%);
         }
-        .member.active { border: 2px solid var(--gold); }
-        .member.completed { border: 2px solid var(--green); background: var(--green-bg); }
-        .member.vacacion { border: 1px dashed var(--muted); opacity: 0.6; }
+        .member.active { border: 2.5px solid var(--gold); box-shadow: 0 0 22px rgba(255, 184, 0, 0.35); background-image: linear-gradient(135deg, rgba(255, 184, 0, 0.12) 0%, var(--inner) 100%); }
+        .member.completed { border: 2.5px solid var(--green); background: var(--green-bg); }
+        .member.vacacion { border: 1px dashed var(--muted); opacity: 0.5; }
         
         .badge { 
             background: var(--border); 
             color: var(--text); 
-            padding: 5px 12px; 
+            padding: 6px 14px; 
             border-radius: 12px; 
-            font-size: 11px; 
+            font-size: 12px; /* Letras más grandes */
             white-space: nowrap;
+            font-weight: 800;
         }
-        .badge.current { background: var(--gold); color: #000; font-weight: bold; }
-        .badge.done { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
-        .badge.vaca { background: var(--muted); color: white; }
+        .badge.current { background: var(--gold); color: #000; font-weight: 900; box-shadow: 0 2px 10px rgba(255,184,0,0.5); }
+        .badge.done { background: var(--green-bg); color: var(--green); border: 1.5px solid var(--green); }
+        .badge.vaca { background: var(--muted); color: #000; }
         
-        .btn-action { background: var(--navy); color: white; border: none; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin-bottom: 8px; }
-        .btn-action:hover { opacity: 0.9; }
-        .btn-action:disabled { background: var(--border); cursor: not-allowed; opacity: 0.6; }
+        .btn-action { 
+            background: linear-gradient(135deg, #FFB800 0%, #E5A400 100%); 
+            color: #000; 
+            border: none; 
+            padding: 15px; 
+            font-size: 15px; /* Letras más grandes */
+            font-weight: 900; 
+            border-radius: 14px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-bottom: 12px; 
+            box-shadow: 0 6px 20px rgba(255, 184, 0, 0.35); 
+            position: relative; 
+            z-index: 1; 
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-action svg { width: 20px; height: 20px; fill: currentColor; }
+        .btn-action:hover { opacity: 0.95; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 184, 0, 0.45); }
+        .btn-action:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; opacity: 0.5; box-shadow: none; transform: none; }
         
-        .btn-secondary { background: var(--inner); color: var(--navy); border: 1px solid var(--border); padding: 9px; font-size: 12px; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 8px; }
-        .btn-mini { background: var(--navy); color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
-        .btn-danger { background: #FFCDD2; color: #B71C1C; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold; }
+        .btn-secondary { 
+            background: var(--inner); 
+            color: var(--text); 
+            border: 2px solid var(--border); 
+            padding: 13px; 
+            font-size: 14px; /* Letras más grandes */
+            font-weight: 800; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-bottom: 12px; 
+            position: relative; 
+            z-index: 1; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-secondary svg { width: 18px; height: 18px; fill: currentColor; }
+        .btn-secondary:hover { border-color: var(--gold); background: var(--navy-light); transform: translateY(-1px); box-shadow: 0 6px 15px rgba(255, 184, 0, 0.2); }
+
+        .btn-mini { background: var(--navy-light); color: var(--text); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-mini:hover { border-color: var(--gold); }
+
+        .btn-danger { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.4); padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-danger:hover { background: rgba(248, 113, 113, 0.3); }
         
         .result-box { 
-            padding: 16px; 
-            border-radius: 12px; 
+            padding: 22px; 
+            border-radius: 16px; 
             background: var(--inner); 
-            border: 1px solid var(--gold); 
-            margin-bottom: 18px; 
+            border: 2px solid var(--gold); 
+            margin-bottom: 22px; 
+            box-shadow: inset 0 0 25px rgba(255, 184, 0, 0.1), 0 8px 20px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+            background-image: radial-gradient(circle at center, rgba(255, 184, 0, 0.08) 0%, transparent 70%);
         }
-        .result-box h2 { color: var(--navy); margin: 4px 0; font-size: 22px; }
+        .result-box h2 { color: var(--gold); margin: 8px 0; font-size: 26px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; }
         
-        table.history-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 5px; }
-        table.history-table th, table.history-table td { border: 1px solid var(--border); padding: 5px; text-align: left; }
-        table.history-table th { background: var(--history-th); color: white; }
+        table.history-table { width: 100%; font-size: 12px; border-collapse: collapse; margin-top: 6px; }
+        table.history-table th, table.history-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+        table.history-table th { background: var(--history-th); color: var(--gold); font-weight: 700; }
 
-        .user-breakdown { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px; margin-top: 6px; display: none; }
+        .user-breakdown { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 10px; display: none; }
         .user-breakdown.active { display: block; }
 
-        .vaca-container { display: flex; gap: 4px; align-items: center; }
-        .vaca-toggle { cursor: pointer; border: none; padding: 4px 8px; font-size: 10px; border-radius: 4px; font-weight: bold; }
-        .vaca-toggle.off { background: #FFCDD2; color: #B71C1C; }
-        .vaca-toggle.on { background: #C8E6C9; color: #1B5E20; }
-        .vaca-revert { cursor: pointer; background: var(--navy); color: white; border: none; padding: 4px 6px; font-size: 10px; border-radius: 4px; font-weight: bold; }
-        .vaca-revert:hover { opacity: 0.8; }
+        .vaca-container { display: flex; gap: 6px; align-items: center; }
+        .vaca-toggle { cursor: pointer; border: 1px solid rgba(248, 113, 113, 0.5); padding: 5px 12px; font-size: 12px; border-radius: 8px; font-weight: 800; background: rgba(248, 113, 113, 0.2); color: var(--danger); }
+        .vaca-toggle:hover { background: rgba(248, 113, 113, 0.3); }
 
-        .status-sync { font-size: 11px; color: var(--muted); margin-top: 12px; }
+        .vaca-revert { cursor: pointer; background: var(--gold); color: #000; border: none; padding: 5px 12px; font-size: 12px; border-radius: 8px; font-weight: 800; }
+        .vaca-revert:hover { opacity: 0.9; }
+
+        .status-sync { font-size: 12px; color: var(--muted); margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 6px; position: relative; z-index: 1; font-weight: 700; }
+        
+        .section-title {
+            text-align: left; 
+            font-size: 15px; /* Letras más grandes */
+            color: var(--gold); 
+            margin: 0 0 14px 0; 
+            text-transform: uppercase; 
+            letter-spacing: 1.2px;
+            font-weight: 900;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+        }
     </style>
 </head>
 <body>
 
+<!-- Barra superior con iconos SVG profesionales y mayor visibilidad -->
 <div class="top-bar">
-    <button class="btn-top" onclick="toggleSidebar()">📊 Menú</button>
-    <button class="btn-top" onclick="toggleNotifPanel()">🔔 Historial <span class="notif-badge" id="notifBadge">0</span></button>
-    <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">🔔 Notificaciones</button>
-    <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">⚠️ Reiniciar BD</button>
-    <button class="btn-top" id="btnTheme" onclick="toggleTheme()">🌙 Tema</button>
+    <button class="btn-top" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> Menú
+    </button>
+    <button class="btn-top" onclick="toggleNotifPanel()">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Historial <span class="notif-badge" id="notifBadge">0</span>
+    </button>
+    <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas
+    </button>
+    <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Reiniciar BD
+    </button>
+    <button class="btn-top" id="btnTheme" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg> Tema
+    </button>
 </div>
 
 <div class="notif-panel" id="notifPanel">
     <div class="notif-header">
         <span>🔔 Actividad Reciente</span>
-        <button style="background:none; border:none; color:white; cursor:pointer; font-size:11px;" onclick="limpiarNotificaciones()">Limpiar</button>
+        <button style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; font-weight: bold;" onclick="limpiarNotificaciones()">Limpiar</button>
     </div>
     <ul class="notif-list" id="notifList">
         <li class="notif-item">Sin notificaciones nuevas.</li>
@@ -300,11 +461,11 @@
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <div class="sidebar" id="sidebar">
-    <h2 style="color: var(--navy); font-size: 18px; margin-top: 0;">📊 Panel de TI</h2>
-    <p style="font-size: 12px; color: var(--muted); margin-bottom: 15px;" id="dashboardMonth"></p>
+    <h2 style="color: var(--gold); font-size: 22px; margin-top: 0; font-weight: 900; letter-spacing: 0.5px;">📊 Panel de Control TI</h2>
+    <p style="font-size: 13px; color: var(--muted); margin-bottom: 18px; font-weight: 800;" id="dashboardMonth"></p>
 
     <div class="stat-card">
-        <h4>📊 Comparativa de Gastos ($)</h4>
+        <h4>📈 Comparativa de Gastos ($)</h4>
         <div class="chart-container">
             <canvas id="gastosChart"></canvas>
         </div>
@@ -313,23 +474,25 @@
     <div class="stat-card">
         <h4>🏅 Medallas Actuales</h4>
         <ul class="stat-list" id="dashBadgesList">
-            <li><span>🤌 El Coño:</span> <strong id="badgeCono">Nadie</strong></li>
-            <li><span>💸 El Billeteado:</span> <strong id="badgeAninado">Nadie</strong></li>
-            <li><span>👻 El Ausente:</span> <strong id="badgeAusente">Nadie</strong></li>
+            <li><span>🤌 El Coño:</span> <strong id="badgeCono" style="color:var(--gold);">Nadie</strong></li>
+            <li><span>💸 El Billeteado:</span> <strong id="badgeAninado" style="color:var(--gold);">Nadie</strong></li>
+            <li><span>👻 El Ausente:</span> <strong id="badgeAusente" style="color:var(--gold);">Nadie</strong></li>
         </ul>
     </div>
 
     <div class="stat-card">
-        <h4>🏆 Histórico de Ganadores por Mes</h4>
+        <h4>🏆 Histórico de Ganadores</h4>
         <ul class="stat-list" id="dashHistoricalWinners"></ul>
-        <button class="btn-secondary" style="margin-top: 8px;" onclick="cerrarMes()">🔒 Guardar y Cerrar Mes Actual</button>
+        <button class="btn-secondary" style="margin-top: 12px;" onclick="cerrarMes()">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Guardar y Cerrar Mes
+        </button>
     </div>
 
     <div class="stat-card">
         <h4>💰 Gastos Mes & Proyección</h4>
         <ul class="stat-list" id="dashExpenseList"></ul>
-        <div style="margin-top: 8px; font-weight: bold; color: var(--gold); font-size: 12px; text-align: right;" id="dashTotalMonth">Total Grupo: $0.00</div>
-        <div style="font-weight: bold; color: var(--navy); font-size: 12px; text-align: right;" id="dashProyeccionMonth">Proyección Mes: $0.00</div>
+        <div style="margin-top: 12px; font-weight: 900; color: var(--gold); font-size: 14px; text-align: right;" id="dashTotalMonth">Total Grupo: $0.00</div>
+        <div style="font-weight: 800; color: var(--text); font-size: 13px; text-align: right;" id="dashProyeccionMonth">Proyección Mes: $0.00</div>
     </div>
 
     <div class="stat-card">
@@ -338,8 +501,8 @@
     </div>
 
     <div class="stat-card">
-        <h4>📜 Historial General de Gastos</h4>
-        <div style="max-height: 150px; overflow-y: auto;">
+        <h4>📜 Historial General</h4>
+        <div style="max-height: 160px; overflow-y: auto;">
             <table class="history-table">
                 <thead><tr><th>Fecha</th><th>Usuario</th><th>Monto</th><th>Acción</th></tr></thead>
                 <tbody id="dashHistoryBody"></tbody>
@@ -348,24 +511,38 @@
     </div>
 </div>
 
-<div class="card">
-    <h1>☕ Control de Café - TI</h1>
-    <p class="sub">ROTACIÓN PARA EL CAFÉ DIARIO</p>
+<div class="main-container">
+    <div class="card">
+        <h1>Control de Café - TI</h1>
+        <p class="sub">Rotación Diaria de Café</p>
 
-    <div class="result-box" id="resultBox">
-        <p id="labelResponsable" style="margin:0; font-size:12px; color:var(--muted)">Hoy le toca gastar a:</p>
-        <h2 id="todayResponsable">Cargando...</h2>
-        <p id="todayDate" style="color: var(--muted); font-size: 11px; margin-top: 3px;"></p>
+        <div class="card-grid">
+            <div>
+                <div class="result-box" id="resultBox">
+                    <p id="labelResponsable" style="margin:0; font-size:13px; color:var(--muted); font-weight:800; letter-spacing: 0.5px;">Hoy le toca gastar a:</p>
+                    <h2 id="todayResponsable">Cargando...</h2>
+                    <p id="todayDate" style="color: var(--muted); font-size: 12px; margin-top: 6px; font-weight: 800;"></p>
+                </div>
+
+                <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">
+                    <svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido
+                </button>
+                <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">
+                    <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia
+                </button>
+                <button class="btn-secondary" onclick="intercambiarTurno()">
+                    <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg> Cambiar Turno
+                </button>
+            </div>
+
+            <div>
+                <h3 class="section-title">✨ Rotación del Equipo:</h3>
+                <div class="rotation-list" id="rotationContainer"></div>
+            </div>
+        </div>
+
+        <div class="status-sync" id="syncStatus">🔄 Conectando con Firebase...</div>
     </div>
-
-    <h3 style="text-align: left; font-size: 13px; color: var(--navy); margin: 10px 0 8px 0;">Rotación del Equipo:</h3>
-    <div class="rotation-list" id="rotationContainer"></div>
-
-    <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">✅ Turno Cumplido</button>
-    <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">⏭️ Saltar por Ausencia</button>
-    <button class="btn-secondary" onclick="intercambiarTurno()">🔄 Cambiar Turno</button>
-
-    <div class="status-sync" id="syncStatus">🔄 Conectando con Firebase...</div>
 </div>
 
 <script>
@@ -384,8 +561,8 @@
     const db = firebase.database();
     const dbRef = db.ref('control_cafe');
 
-    let equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
-    const THEME_KEY = "cafe_ti_tema";
+    let equipo = ["Mauricio", "Danny", "Fabricio", "Sebastian"];
+    const THEME_KEY = "cafe_ti_tema_davis";
 
     const ADMIN_USER = "admin";
     const ADMIN_PASS = "admin123";
@@ -397,9 +574,7 @@
         "Sebastian": "https://api.dicebear.com/7.x/bottts/svg?seed=SebastianTI&backgroundColor=d1d4f9"
     };
 
-    const feriados = [
-        "2026-08-10"
-    ];
+    const feriados = ["2026-08-10"];
 
     let miChart = null;
     let usuarioDesglosadoAbierto = null;
@@ -417,7 +592,7 @@
     };
 
     document.addEventListener("DOMContentLoaded", () => {
-        const temaGuardado = localStorage.getItem(THEME_KEY) || 'light';
+        const temaGuardado = localStorage.getItem(THEME_KEY) || 'dark';
         aplicarTema(temaGuardado);
         render(); 
     });
@@ -432,6 +607,7 @@
         if (userIngresado === ADMIN_USER && passIngresado === ADMIN_PASS) {
             if (confirm("⚠️ Credenciales correctas. ¿Estás 100% seguro de reiniciar toda la base de datos a cero? Se borrará todo el historial.")) {
                 const estadoInicial = {
+                    equipo: ["Mauricio", "Danny", "Fabricio", "Sebastian"],
                     turnoIndex: 0,
                     ultimoEnCumplir: "",
                     ultimaFechaCumplido: "",
@@ -458,28 +634,28 @@
             return;
         }
         if (Notification.permission === "granted") {
-            btn.innerText = "🔕 Notificaciones";
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas`;
             btn.classList.add('active-perm');
         } else if (Notification.permission === "denied") {
-            btn.innerText = "❌ Bloqueadas";
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Bloqueadas`;
             btn.style.borderColor = "var(--danger)";
             btn.style.color = "var(--danger)";
         } else {
-            btn.innerText = "🔔 Notificaciones";
+            btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas`;
             btn.classList.remove('active-perm');
         }
     }
 
     function solicitarPermisoNotificaciones() {
         if (!("Notification" in window)) {
-            alert("Tu navegador no soporta notificaciones de escritorio.");
+            alert("Tu navegador no soporta notificaciones.");
             return;
         }
         Notification.requestPermission().then(permission => {
             actualizarBotonPermiso();
             if (permission === "granted") {
                 new Notification("☕ Control de Café - TI", {
-                    body: "¡Notificaciones activadas correctamente! Te avisaremos cuando sea tu turno.",
+                    body: "¡Notificaciones activadas correctamente!",
                     icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
                 });
             } else {
@@ -488,14 +664,13 @@
         });
     }
 
-    let ultimaNotifProcesadaID = 0;
     let diaNotificadoCache = "";
 
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            if (data.equipo && Array.isArray(data.equipo)) {
-                equipo = data.equipo;
+            if (data.equipo) {
+                equipo = Array.isArray(data.equipo) ? data.equipo : Object.values(data.equipo);
             }
             estado = {
                 turnoIndex: data.turnoIndex ?? 0,
@@ -515,19 +690,6 @@
                 diaNotificadoCache = hoy;
                 agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
             }
-
-            if (estado.notificaciones.length > 0) {
-                const ultima = estado.notificaciones[0];
-                if (ultima && ultima.id && ultima.id !== ultimaNotifProcesadaID) {
-                    ultimaNotifProcesadaID = ultima.id;
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        new Notification("☕ Control de Café - TI", {
-                            body: ultima.texto.replace(/\*\*/g, ''),
-                            icon: "https://cdn-icons-png.flaticon.com/512/924/924514.png"
-                        });
-                    }
-                }
-            }
         } else {
             guardarEstadoFirebase();
         }
@@ -535,17 +697,14 @@
         render();
         renderNotificaciones();
         actualizarBotonPermiso();
-        document.getElementById('syncStatus').innerText = '🟢 Conectado en Tiempo Real (Firebase)';
+        document.getElementById('syncStatus').innerText = '🟢 Conectado con Firebase';
     }, (error) => {
         console.error("Error al sincronizar:", error);
-        document.getElementById('syncStatus').innerText = '🔴 Error de conexión con Firebase';
+        document.getElementById('syncStatus').innerText = '🔴 Error de conexión';
     });
 
     function guardarEstadoFirebase() {
-        const datosAGuardar = {
-            ...estado,
-            equipo: equipo
-        };
+        const datosAGuardar = { ...estado, equipo: equipo };
         dbRef.set(datosAGuardar);
     }
 
@@ -557,7 +716,6 @@
         estado.notificaciones.unshift({ id: nuevoId, texto: texto, hora: horaActual, leido: false });
         if (estado.notificaciones.length > 15) estado.notificaciones.pop();
         
-        ultimaNotifProcesadaID = nuevoId;
         guardarEstadoFirebase();
     }
 
@@ -616,17 +774,20 @@
     function aplicarTema(tema) {
         document.documentElement.setAttribute('data-theme', tema);
         const btn = document.getElementById('btnTheme');
-        btn.innerHTML = tema === 'dark' ? '☀️ Claro' : '🌙 Tema';
+        btn.innerHTML = tema === 'dark' 
+            ? `<svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg> Tema`
+            : `<svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg> Tema`;
         localStorage.setItem(THEME_KEY, tema);
         if (miChart) {
-            miChart.options.scales.x.ticks.color = tema === 'dark' ? '#E6E5F5' : '#1E1D45';
-            miChart.options.scales.y.ticks.color = tema === 'dark' ? '#E6E5F5' : '#1E1D45';
+            const esDark = tema === 'dark';
+            miChart.options.scales.x.ticks.color = esDark ? '#E6E5F5' : '#1E1D45';
+            miChart.options.scales.y.ticks.color = esDark ? '#E6E5F5' : '#1E1D45';
             miChart.update();
         }
     }
 
     function toggleTheme() {
-        const temaActual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const temaActual = document.documentElement.getAttribute('data-theme');
         aplicarTema(temaActual === 'dark' ? 'light' : 'dark');
     }
 
@@ -668,10 +829,7 @@
         while (true) {
             const diaSemana = d.getUTCDay();
             const fechaStr = obtenerFechaFormateada(d);
-            
-            if (diaSemana !== 0 && diaSemana !== 6 && !feriados.includes(fechaStr)) {
-                break; 
-            }
+            if (diaSemana !== 0 && diaSemana !== 6 && !feriados.includes(fechaStr)) break; 
             d.setUTCDate(d.getUTCDate() + 1);
         }
         return d;
@@ -679,12 +837,6 @@
 
     function verificarAjusteVacaciones() {
         if (!estado.vacaciones) return;
-
-        const todosDeVacaciones = equipo.every(nombre => estado.vacaciones[nombre]);
-        if (todosDeVacaciones) {
-            Object.keys(estado.vacaciones).forEach(k => estado.vacaciones[k] = false);
-        }
-
         let intentos = 0;
         while (estado.vacaciones[equipo[estado.turnoIndex]] && intentos < equipo.length) {
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
@@ -695,19 +847,17 @@
     function editarGastoHistorial(indexOriginal) {
         const gasto = estado.gastos[indexOriginal];
         const nuevoMonto = prompt(`Editar monto del turno de ${gasto.persona} (${gasto.fecha}):`, gasto.monto.toFixed(2));
-        
         if (nuevoMonto !== null && !isNaN(parseFloat(nuevoMonto)) && parseFloat(nuevoMonto) >= 0) {
             estado.gastos[indexOriginal].monto = parseFloat(nuevoMonto);
-            agregarNotificacion(`✏️ Se editó el turno de ${gasto.persona} a $${parseFloat(nuevoMonto).toFixed(2)}`);
+            agregarNotificacion(`✏️ Se editó el turno de ${gasto.persona}`);
             guardarEstadoFirebase();
         }
     }
 
     function eliminarGasto(indexOriginal) {
         if (confirm("¿Estás seguro de eliminar este turno del historial?")) {
-            const eliminado = estado.gastos[indexOriginal];
             estado.gastos.splice(indexOriginal, 1);
-            agregarNotificacion(`🗑️ Se eliminó el registro de café de ${eliminado.persona}`);
+            agregarNotificacion(`🗑️ Se eliminó un registro de café`);
             guardarEstadoFirebase();
         }
     }
@@ -741,7 +891,7 @@
                 datasets: [{
                     label: 'Gastos del Mes ($)',
                     data: safeData,
-                    backgroundColor: ['#2B2A6B', '#D39E2A', '#2E7D32', '#3D3B8E'],
+                    backgroundColor: ['#FFB800', '#4ADE80', '#60A5FA', '#F472B6'],
                     borderRadius: 6
                 }]
             },
@@ -750,8 +900,8 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { ticks: { color: colorTexto } },
-                    y: { ticks: { color: colorTexto }, beginAtZero: true }
+                    x: { ticks: { color: colorTexto, font: { size: 12, weight: 'bold' } } },
+                    y: { ticks: { color: colorTexto, font: { size: 12, weight: 'bold' } }, beginAtZero: true }
                 }
             }
         });
@@ -760,24 +910,16 @@
     function cerrarMes() {
         const hoy = new Date();
         const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        
         const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
         const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
         const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
 
         if (confirm(`¿Deseas guardar los ganadores del mes de ${mesNombre}?`)) {
             if (!estado.historicoGanadores) estado.historicoGanadores = [];
-            
-            estado.historicoGanadores.unshift({
-                mes: mesNombre,
-                cono: elCono,
-                aninado: elAninado,
-                ausente: elAusente
-            });
-
+            estado.historicoGanadores.unshift({ mes: mesNombre, cono: elCono, aninado: elAninado, ausente: elAusente });
             agregarNotificacion(`🔒 Se cerró el mes de ${mesNombre}`);
             guardarEstadoFirebase();
-            alert("🏆 ¡Mes guardado con éxito en el Histórico!");
+            alert("🏆 ¡Mes guardado con éxito!");
         }
     }
 
@@ -855,8 +997,8 @@
         if (Array.isArray(estado.historicoGanadores) && estado.historicoGanadores.length > 0) {
             estado.historicoGanadores.forEach(h => {
                 histContainer.innerHTML += `
-                    <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 4px;">
-                        <span style="font-weight:bold; color:var(--navy);">${h.mes}</span>
+                    <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                        <span style="font-weight:bold; color:var(--gold);">${h.mes}</span>
                         <small>💸 ${h.aninado} | 🤌 ${h.cono} | 👻 ${h.ausente}</small>
                     </li>`;
             });
@@ -872,7 +1014,6 @@
 
         equipo.forEach(nombre => {
             const valGasto = gastosIndiv[nombre];
-
             let filasTurnos = '';
             if (Array.isArray(estado.gastos)) {
                 estado.gastos.forEach((g, index) => {
@@ -894,26 +1035,25 @@
             }
 
             const estaAbierto = usuarioDesglosadoAbierto === nombre;
-            
             expList.innerHTML += `
-                <li style="margin-bottom: 6px;">
+                <li style="margin-bottom: 8px;">
                     <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                         <span>${nombre}:</span> 
                         <div>
-                            <strong>$${valGasto.toFixed(2)}</strong> 
-                            <button class="btn-mini" style="margin-left:4px;" onclick="toggleDesgloseUsuario('${nombre}')">
+                            <strong style="color:var(--gold);">$${valGasto.toFixed(2)}</strong> 
+                            <button class="btn-mini" style="margin-left:6px;" onclick="toggleDesgloseUsuario('${nombre}')">
                                 ${estaAbierto ? '✖ Cerrar' : '📋 Ver Turnos'}
                             </button>
                         </div>
                     </div>
                     <div class="user-breakdown ${estaAbierto ? 'active' : ''}">
-                        <div style="font-size:10px; font-weight:bold; margin-bottom:4px; color:var(--navy);">Turnos de ${nombre}:</div>
+                        <div style="font-size:11px; font-weight:bold; margin-bottom:6px; color:var(--gold);">Turnos de ${nombre}:</div>
                         ${filasTurnos ? `
                             <table class="history-table">
                                 <thead><tr><th>Fecha</th><th>Monto</th><th>Acción</th></tr></thead>
                                 <tbody>${filasTurnos}</tbody>
                             </table>
-                        ` : '<small style="color:var(--muted); font-size:10px;">Sin turnos registrados este mes.</small>'}
+                        ` : '<small style="color:var(--muted); font-size:11px;">Sin turnos este mes.</small>'}
                     </div>
                 </li>`;
         });
@@ -928,23 +1068,15 @@
         equipo.forEach(nombre => {
             const estaDeVaca = estado.vacaciones ? estado.vacaciones[nombre] : false;
             const esTurnoActual = (nombre === equipo[estado.turnoIndex]);
-            
             let htmlAcciones = '';
             if (estaDeVaca) {
                 htmlAcciones = `<button class="vaca-revert" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>`;
             } else if (esTurnoActual) {
-                htmlAcciones = `<button class="vaca-toggle off" onclick="toggleVacaciones('${nombre}')">🏖️ Marcar Vacaciones</button>`;
+                htmlAcciones = `<button class="vaca-toggle" onclick="toggleVacaciones('${nombre}')">🏖️ Vacaciones</button>`;
             } else {
-                htmlAcciones = `<span style="font-size: 11px; color: var(--muted);">No es su turno</span>`;
+                htmlAcciones = `<span style="font-size: 12px; color: var(--muted);">No es su turno</span>`;
             }
-
-            vacList.innerHTML += `
-                <li>
-                    <span>${nombre}:</span>
-                    <div class="vaca-container">
-                        ${htmlAcciones}
-                    </div>
-                </li>`;
+            vacList.innerHTML += `<li><span>${nombre}:</span><div class="vaca-container">${htmlAcciones}</div></li>`;
         });
     }
 
@@ -952,8 +1084,7 @@
         if (confirm(`¿Estás seguro de que ${nombre} está de vacaciones?`)) {
             if (!estado.vacaciones) estado.vacaciones = {};
             estado.vacaciones[nombre] = true;
-
-            agregarNotificacion(`🏖️ ${nombre} ha entrado en modo vacaciones.`);
+            agregarNotificacion(`🏖️ ${nombre} entró en modo vacaciones.`);
             verificarAjusteVacaciones();
             guardarEstadoFirebase();
         }
@@ -962,14 +1093,11 @@
     function regresarTurnoA(nombre) {
         const idxPersona = equipo.indexOf(nombre);
         if (idxPersona !== -1) {
-            if (estado.vacaciones && estado.vacaciones[nombre]) {
-                estado.vacaciones[nombre] = false;
-            }
+            if (estado.vacaciones) estado.vacaciones[nombre] = false;
             estado.turnoIndex = idxPersona;
-
-            agregarNotificacion(`↩️ ${nombre} ha regresado de vacaciones y retoma su turno.`);
+            agregarNotificacion(`↩️ ${nombre} regresó de vacaciones.`);
             guardarEstadoFirebase();
-            alert(`✅ ${nombre} ha vuelto al estado activo con éxito.`);
+            alert(`✅ ${nombre} volvió al estado activo.`);
         }
     }
 
@@ -988,9 +1116,7 @@
             while (estado.vacaciones && estado.vacaciones[equipo[simuladorIndex]]) {
                 simuladorIndex = (simuladorIndex + 1) % equipo.length;
             }
-
             const integrante = equipo[simuladorIndex];
-            
             if (integrante === estado.ultimoEnCumplir && yaPagoHoy) {
                 infoFechasTurnos[integrante] = "PAGADO HOY";
             } else if (i === 0 && !yaPagoHoy) {
@@ -999,7 +1125,6 @@
                 fechaSimulada = siguienteDiaLaboral(fechaSimulada);
                 infoFechasTurnos[integrante] = fechaSimulada.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
             }
-
             simuladorIndex = (simuladorIndex + 1) % equipo.length;
         }
 
@@ -1028,18 +1153,18 @@
 
             let botonAccionTurno = '';
             if (estaEnVacaciones) {
-                botonAccionTurno = `<button class="vaca-revert" title="Regresar de vacaciones a ${nombre}" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>`;
+                botonAccionTurno = `<button class="vaca-revert" onclick="regresarTurnoA('${nombre}')">↩️ Regresar</button>`;
             } else if (esElActual) {
-                botonAccionTurno = `<button class="vaca-toggle off" style="padding: 3px 6px;" title="Marcar de vacaciones" onclick="toggleVacaciones('${nombre}')">🏖️ Vacaciones</button>`;
+                botonAccionTurno = `<button class="vaca-toggle" onclick="toggleVacaciones('${nombre}')">🏖️ Vacaciones</button>`;
             }
 
             container.innerHTML += `
                 <div class="member ${classMember}">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${avatares[nombre]}" alt="${nombre}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${avatares[nombre]}" alt="${nombre}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1.5px solid var(--border);">
                         <span>${index + 1}. ${nombre}</span>
                     </div>
-                    <div style="display: flex; gap: 6px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
                         ${botonAccionTurno}
                         <span class="badge ${classBadge}">${badgeText}</span>
                     </div>
@@ -1048,7 +1173,6 @@
 
         const btnAvanzar = document.getElementById('btnAvanzar');
         const btnSaltar = document.getElementById('btnSaltar');
-
         const todayDateEl = document.getElementById('todayDate');
         if (todayDateEl) {
             todayDateEl.innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -1062,7 +1186,10 @@
         } else {
             document.getElementById('labelResponsable').innerText = "Hoy le toca gastar a:";
             document.getElementById('todayResponsable').innerText = equipo[estado.turnoIndex];
-            if (btnAvanzar) { btnAvanzar.disabled = false; btnAvanzar.innerText = "✅ Turno Cumplido"; }
+            if (btnAvanzar) { 
+                btnAvanzar.disabled = false; 
+                btnAvanzar.innerHTML = `<svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido`; 
+            }
             if (btnSaltar) { btnSaltar.disabled = false; }
         }
 
@@ -1078,15 +1205,14 @@
 
         const persona = equipo[estado.turnoIndex];
         const valor = prompt(`¿Cuánto gastó ${persona} hoy? ($):`, "1.80");
-        
-        if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
+        if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor >= 0)) {
             if (!Array.isArray(estado.gastos)) estado.gastos = [];
             estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor) });
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
             estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             
-            agregarNotificacion(`☕ ¡${persona} cumplió su turno de café por $${parseFloat(valor).toFixed(2)}!`);
+            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}!`);
             verificarAjusteVacaciones();
             guardarEstadoFirebase();
         }
@@ -1103,53 +1229,47 @@
         const disponibles = equipo.filter(nombre => nombre !== personaAusente && !(estado.vacaciones && estado.vacaciones[nombre]));
 
         if (disponibles.length === 0) {
-            alert("⚠️ No hay más compañeros disponibles para saltar (todos están ausentes o de vacaciones).");
+            alert("⚠️ No hay más compañeros disponibles.");
             return;
         }
 
-        const listaSugerida = disponibles.join(", ");
-        const reemplazo = prompt(`⚠️ ${personaAusente} está ausente hoy.\n\nEscribe exactamente el nombre del compañero que asumirá el turno de hoy (${listaSugerida}):`);
-
+        const reemplazo = prompt(`⚠️ ${personaAusente} ausente. ¿Quién asume el turno hoy? (${disponibles.join(", ")}):`);
         if (reemplazo === null) return;
 
         const nombreLimpio = reemplazo.trim();
-
         if (!disponibles.includes(nombreLimpio)) {
-            alert(`❌ "${nombreLimpio}" no es un miembro válido o disponible. Por favor, introduce un nombre correcto de la lista.`);
+            alert(`❌ "${nombreLimpio}" no es un miembro válido o disponible.`);
             return;
         }
 
-        if (confirm(`¿Confirmas que ${nombreLimpio} asumirá el turno de hoy en lugar de ${personaAusente}?`)) {
+        if (confirm(`¿Confirmas que ${nombreLimpio} asume el turno hoy?`)) {
             const idxAusente = equipo.indexOf(personaAusente);
             const idxReemplazo = equipo.indexOf(nombreLimpio);
 
-            // NUEVA LÓGICA: Extraemos al reemplazo de su posición actual y lo colocamos en el puesto del ausente
-            equipo.splice(idxReemplazo, 1); // Lo removemos temporalmente
-            equipo.splice(idxAusente, 0, nombreLimpio); // Lo insertamos exactamente en el lugar del ausente
+            equipo.splice(idxReemplazo, 1);
+            equipo.splice(idxAusente, 0, nombreLimpio);
 
             if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
             estado.saltosHistorial.push({ fecha: hoyStr, persona: personaAusente });
 
-            agregarNotificacion(`⏭️ ${personaAusente} estuvo ausente; **${nombreLimpio}** asumió su turno hoy.`);
+            agregarNotificacion(`⏭️ ${personaAusente} ausente; **${nombreLimpio}** asumió su turno.`);
             guardarEstadoFirebase();
-            alert(`✅ Turno transferido con éxito a ${nombreLimpio} (ahora en la posición ${idxAusente + 1}).`);
+            alert(`✅ Turno transferido con éxito.`);
         }
     }
 
     function intercambiarTurno() {
         const p1 = equipo[estado.turnoIndex];
-        const p2 = prompt(`El turno actual es de ${p1}. ¿Con quién deseas intercambiar la posición? (Mauricio, Fabricio, Danny, Sebastian):`);
-        
+        const p2 = prompt(`El turno actual es de ${p1}. ¿Con quién deseas intercambiar? (Mauricio, Fabricio, Danny, Sebastian):`);
         if (equipo.includes(p2) && p2 !== p1) {
             const idx1 = estado.turnoIndex;
             const idx2 = equipo.indexOf(p2);
-            
             const temp = equipo[idx1];
             equipo[idx1] = equipo[idx2];
             equipo[idx2] = temp;
 
             agregarNotificacion(`🔄 ${p1} intercambió turnos con ${p2}.`);
-            alert(`🤝 Cambio realizado. Ahora le toca a ${equipo[estado.turnoIndex]}.`);
+            alert(`🤝 Cambio realizado.`);
             guardarEstadoFirebase();
         } else if (p2) {
             alert("Nombre no válido.");
