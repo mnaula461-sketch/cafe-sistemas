@@ -97,27 +97,47 @@
             border: 2px solid var(--top-border);
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             align-items: center;
+            overflow-x: auto; /* Deslizable horizontalmente en móviles */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Ocultar barra de desplazamiento estética para navegadores basados en Webkit */
+        .top-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .top-bar::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
         }
 
         .btn-top { 
             background: var(--top-btn-bg); 
             color: var(--top-btn-text); 
             border: 2px solid var(--border); 
-            padding: 11px 14px; 
+            padding: 11px 16px; 
             border-radius: 12px; 
             font-weight: 800; 
             cursor: pointer; 
             position: relative;
-            font-size: 14px; /* Letras más grandes */
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            flex: 1;
+            flex: 0 0 auto; /* Evita que los botones se compriman en móvil y permite scroll */
+            min-width: 110px; /* Tamaño consistente para deslizar */
             transition: all 0.25s ease;
             white-space: nowrap;
             box-shadow: 0 3px 10px rgba(0,0,0,0.2);
         }
+
+        @media (min-width: 900px) {
+            .btn-top {
+                flex: 1; /* En PC se distribuyen equitativamente */
+                min-width: 0;
+            }
+        }
+
         .btn-top svg { width: 18px; height: 18px; fill: currentColor; }
         .btn-top:hover { 
             background: var(--top-btn-hover); 
@@ -226,7 +246,7 @@
         .stat-card h4 { 
             margin: 0 0 12px 0; 
             color: var(--gold); 
-            font-size: 14px; /* Letras más grandes */
+            font-size: 14px; 
             font-weight: 900;
             letter-spacing: 1.2px;
             border-bottom: 2px dashed var(--border); 
@@ -236,7 +256,7 @@
             align-items: center; 
             text-transform: uppercase; 
         }
-        .stat-list { list-style: none; padding: 0; margin: 0; font-size: 14px; /* Letras más grandes */ }
+        .stat-list { list-style: none; padding: 0; margin: 0; font-size: 14px; }
         .stat-list li { display: flex; justify-content: space-between; padding: 8px 0; align-items: center; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
         .chart-container {
@@ -309,7 +329,7 @@
             justify-content: space-between; 
             align-items: center; 
             font-weight: 800; 
-            font-size: 14px; /* Letras más grandes */
+            font-size: 14px; 
             position: relative;
             z-index: 1;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -324,7 +344,7 @@
             color: var(--text); 
             padding: 6px 14px; 
             border-radius: 12px; 
-            font-size: 12px; /* Letras más grandes */
+            font-size: 12px; 
             white-space: nowrap;
             font-weight: 800;
         }
@@ -337,7 +357,7 @@
             color: #000; 
             border: none; 
             padding: 15px; 
-            font-size: 15px; /* Letras más grandes */
+            font-size: 15px; 
             font-weight: 900; 
             border-radius: 14px; 
             cursor: pointer; 
@@ -361,7 +381,7 @@
             color: var(--text); 
             border: 2px solid var(--border); 
             padding: 13px; 
-            font-size: 14px; /* Letras más grandes */
+            font-size: 14px; 
             font-weight: 800; 
             border-radius: 12px; 
             cursor: pointer; 
@@ -415,7 +435,7 @@
         
         .section-title {
             text-align: left; 
-            font-size: 15px; /* Letras más grandes */
+            font-size: 15px; 
             color: var(--gold); 
             margin: 0 0 14px 0; 
             text-transform: uppercase; 
@@ -429,7 +449,7 @@
 </head>
 <body>
 
-<!-- Barra superior con iconos SVG profesionales y mayor visibilidad -->
+<!-- Barra superior deslizable en móvil para mostrar todas las opciones -->
 <div class="top-bar">
     <button class="btn-top" onclick="toggleSidebar()">
         <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> Menú
