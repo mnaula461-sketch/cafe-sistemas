@@ -382,7 +382,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const dbRef = db.ref('control_cafe');
+    const dbRef = db.ref('control_cafe_test');
 
     let equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     const THEME_KEY = "cafe_ti_tema";
@@ -680,7 +680,6 @@
     function verificarAjusteVacaciones() {
         if (!estado.vacaciones) return;
 
-        // Protección antivuelco: si todos están de vacaciones, se desactivan automáticamente
         const todosDeVacaciones = equipo.every(nombre => estado.vacaciones[nombre]);
         if (todosDeVacaciones) {
             Object.keys(estado.vacaciones).forEach(k => estado.vacaciones[k] = false);
@@ -1124,15 +1123,16 @@
             const idxAusente = equipo.indexOf(personaAusente);
             const idxReemplazo = equipo.indexOf(nombreLimpio);
 
-            equipo[idxAusente] = nombreLimpio;
-            equipo[idxReemplazo] = personaAusente;
+            // NUEVA LÓGICA: Extraemos al reemplazo de su posición actual y lo colocamos en el puesto del ausente
+            equipo.splice(idxReemplazo, 1); // Lo removemos temporalmente
+            equipo.splice(idxAusente, 0, nombreLimpio); // Lo insertamos exactamente en el lugar del ausente
 
             if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
             estado.saltosHistorial.push({ fecha: hoyStr, persona: personaAusente });
 
             agregarNotificacion(`⏭️ ${personaAusente} estuvo ausente; **${nombreLimpio}** asumió su turno hoy.`);
             guardarEstadoFirebase();
-            alert(`✅ Turno transferido con éxito a ${nombreLimpio} para hoy.`);
+            alert(`✅ Turno transferido con éxito a ${nombreLimpio} (ahora en la posición ${idxAusente + 1}).`);
         }
     }
 
