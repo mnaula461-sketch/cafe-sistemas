@@ -72,6 +72,7 @@
             margin: 0; 
             padding: 95px 15px 30px 15px; 
             position: relative;
+            overflow-x: hidden;
         }
 
         body::before {
@@ -87,8 +88,10 @@
         .top-bar { 
             position: fixed;
             top: 15px;
-            left: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 860px;
             display: flex; 
             gap: 10px; 
             z-index: 102; 
@@ -102,9 +105,9 @@
             align-items: center;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none;
         }
-        .top-bar::-webkit-scrollbar { display: none; /* Safari and Chrome */ }
+        .top-bar::-webkit-scrollbar { display: none; }
 
         .btn-top { 
             background: var(--top-btn-bg); 
@@ -196,6 +199,7 @@
         .notif-item:last-child { border-bottom: none; }
         .notif-time { font-size: 9px; color: var(--muted); display: block; margin-top: 2px; }
 
+        /* Sidebar adaptable: Deslizable de izq a der en celular y centrado/ancho fijo en PC */
         .sidebar { 
             position: fixed; 
             top: 0; 
@@ -214,6 +218,19 @@
             overflow-y: auto; 
         }
         .sidebar.open { left: 0; }
+        
+        @media (min-width: 900px) {
+            .sidebar {
+                left: -450px;
+                width: 450px;
+                border-right: 1px solid var(--border);
+                border-left: none;
+            }
+            .sidebar.open {
+                left: 0;
+            }
+        }
+
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: none; z-index: 100; backdrop-filter: blur(4px); }
         .sidebar-overlay.active { display: block; }
 
@@ -627,7 +644,6 @@
         aplicarTema(temaGuardado);
         render(); 
 
-        // Permitir desplazamiento horizontal táctil con arrastre de mouse opcional
         const topBar = document.getElementById('topBar');
         let isDown = false;
         let startX;
