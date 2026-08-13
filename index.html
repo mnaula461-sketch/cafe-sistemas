@@ -100,7 +100,11 @@
             border: 1px solid var(--border);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             align-items: center;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
         }
+        .top-bar::-webkit-scrollbar { display: none; /* Safari and Chrome */ }
 
         .btn-top { 
             background: var(--top-btn-bg); 
@@ -116,7 +120,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            flex: 1;
+            flex: 0 0 auto;
             transition: all 0.25s ease;
             white-space: nowrap;
         }
@@ -316,6 +320,7 @@
             z-index: 1;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             background-image: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(0,0,0,0.08) 100%);
+            gap: 10px;
         }
         .member.active { border: 2px solid var(--gold); box-shadow: 0 0 18px rgba(255, 184, 0, 0.25); background-image: linear-gradient(135deg, rgba(255, 184, 0, 0.1) 0%, var(--inner) 100%); }
         .member.completed { border: 2px solid var(--green); background: var(--green-bg); }
@@ -396,7 +401,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            margin-right: 6px;
+            flex-shrink: 0;
         }
         .btn-vaca-today:hover {
             background: rgba(248, 113, 113, 0.35);
@@ -453,7 +458,7 @@
 </head>
 <body>
 
-<div class="top-bar">
+<div class="top-bar" id="topBar">
     <button class="btn-top" onclick="toggleSidebar()">
         <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> Menú
     </button>
@@ -621,6 +626,27 @@
         const temaGuardado = localStorage.getItem(THEME_KEY) || 'dark';
         aplicarTema(temaGuardado);
         render(); 
+
+        // Permitir desplazamiento horizontal táctil con arrastre de mouse opcional
+        const topBar = document.getElementById('topBar');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        topBar.addEventListener('mousedown', (e) => {
+            isDown = true;
+            startX = e.pageX - topBar.offsetLeft;
+            scrollLeft = topBar.scrollLeft;
+        });
+        topBar.addEventListener('mouseleave', () => { isDown = false; });
+        topBar.addEventListener('mouseup', () => { isDown = false; });
+        topBar.addEventListener('mousemove', (e) => {
+            if(!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - topBar.offsetLeft;
+            const walk = (x - startX) * 2;
+            topBar.scrollLeft = scrollLeft - walk;
+        });
     });
 
     function reiniciarBaseDeDatosTotal() {
@@ -1180,7 +1206,7 @@
                 classMember = 'vacacion';
                 classBadge = 'vaca';
                 if (esElActual || !yaCumplioHoy) {
-                    botonVacacionesExtra = `<button class="vaca-revert" style="padding: 2px 6px; font-size: 9px; margin-right: 6px;" onclick="confirmarCambioVacaciones('${nombre}', false)">Regresar</button>`;
+                    botonVacacionesExtra = `<button class="vaca-revert" style="padding: 2px 6px; font-size: 9px; flex-shrink: 0;" onclick="confirmarCambioVacaciones('${nombre}', false)">Regresar</button>`;
                 }
             } else if (esElActual) {
                 if (yaCumplioHoy) {
@@ -1201,11 +1227,11 @@
 
             container.innerHTML += `
                 <div class="member ${classMember}">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="${avatares[nombre]}" alt="${nombre}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border);">
-                        <span>${index + 1}. ${nombre}</span>
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                        <img src="${avatares[nombre]}" alt="${nombre}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border); flex-shrink: 0;">
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${index + 1}. ${nombre}</span>
                     </div>
-                    <div style="display: flex; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                         ${botonVacacionesExtra}
                         <span class="badge ${classBadge}">${badgeText}</span>
                     </div>
