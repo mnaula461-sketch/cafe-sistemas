@@ -100,35 +100,25 @@
             border: 1px solid var(--border);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             align-items: center;
-            overflow-x: auto;
-            white-space: nowrap;
-            scrollbar-width: thin;
-        }
-
-        .top-bar::-webkit-scrollbar {
-            height: 4px;
-        }
-        .top-bar::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
         }
 
         .btn-top { 
             background: var(--top-btn-bg); 
             color: var(--top-btn-text); 
             border: 1px solid var(--border); 
-            padding: 9px 14px; 
+            padding: 9px 12px; 
             border-radius: 10px; 
             font-weight: 600; 
             cursor: pointer; 
             position: relative;
             font-size: 12px;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            flex-shrink: 0;
+            flex: 1;
             transition: all 0.25s ease;
+            white-space: nowrap;
         }
         .btn-top svg { width: 15px; height: 15px; fill: currentColor; }
         .btn-top:hover { 
@@ -389,12 +379,28 @@
         }
         .btn-secondary svg { width: 16px; height: 16px; fill: currentColor; }
         .btn-secondary:hover { border-color: var(--gold); background: var(--navy-light); transform: translateY(-1px); }
+        .btn-secondary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; opacity: 0.5; box-shadow: none; transform: none; border-color: var(--border); }
 
         .btn-mini { background: var(--navy-light); color: var(--text); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .btn-mini:hover { border-color: var(--gold); }
 
         .btn-danger { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.3); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
         .btn-danger:hover { background: rgba(248, 113, 113, 0.25); }
+
+        .btn-vaca-today {
+            background: rgba(248, 113, 113, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        .btn-vaca-today:hover {
+            background: rgba(248, 113, 113, 0.35);
+        }
         
         .result-box { 
             padding: 20px; 
@@ -407,7 +413,13 @@
             z-index: 1;
             background-image: radial-gradient(circle at center, rgba(255, 184, 0, 0.07) 0%, transparent 70%);
         }
-        .result-box h2 { color: var(--gold); margin: 6px 0; font-size: 22px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; }
+        .result-box.completed-box { 
+            border-color: var(--green); 
+            box-shadow: inset 0 0 20px rgba(74, 222, 128, 0.1), 0 8px 20px rgba(0,0,0,0.2);
+            background-image: radial-gradient(circle at center, rgba(74, 222, 128, 0.08) 0%, transparent 70%);
+        }
+        .result-box h2 { color: var(--gold); margin: 6px 0; font-size: 24px; font-weight: 900; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: 0.5px; }
+        .result-box.completed-box h2 { color: var(--green); }
         
         table.history-table { width: 100%; font-size: 11px; border-collapse: collapse; margin-top: 5px; }
         table.history-table th, table.history-table td { border: 1px solid var(--border); padding: 6px; text-align: left; }
@@ -546,7 +558,7 @@
                 <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">
                     <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia
                 </button>
-                <button class="btn-secondary" onclick="intercambiarTurno()">
+                <button class="btn-secondary" id="btnCambiar" onclick="intercambiarTurno()">
                     <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg> Cambiar Turno
                 </button>
             </div>
@@ -699,18 +711,15 @@
 
             const hoy = obtenerFechaFormateada(new Date());
             
-            const gastoHoy = estado.gastos.find(g => g.fecha === hoy);
-            if (gastoHoy) {
-                const idxGasto = equipo.indexOf(gastoHoy.persona);
-                if (idxGasto !== -1) {
-                    estado.turnoIndex = idxGasto;
-                    estado.ultimaFechaCumplido = hoy;
-                }
+            if (estado.ultimaFechaCumplido && estado.ultimaFechaCumplido < hoy) {
+                estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+                estado.ultimaFechaCumplido = hoy; 
+                guardarEstadoFirebase();
             }
 
             const responsableHoy = equipo[estado.turnoIndex];
 
-            if (diaNotificadoCache !== hoy && estado.ultimaFechaCumplido !== hoy) {
+            if (diaNotificadoCache !== hoy) {
                 diaNotificadoCache = hoy;
                 agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
             }
@@ -772,7 +781,7 @@
         list.innerHTML = '';
 
         if (!estado.notificaciones || estado.notificaciones.length === 0) {
-            list.innerHTML = '<li class="notif-item">Sin notificaciones registradas.</li>';
+            list.innerHTML = '<li class="notif-item">Sin notificaciones nuevas.</li>';
             badge.style.display = 'none';
             return;
         }
@@ -840,9 +849,9 @@
     }
 
     function obtenerFechaFormateada(d) {
-        const anio = d.getFullYear();
-        const mes = String(d.getMonth() + 1).padStart(2, '0');
-        const dia = String(d.getDate()).padStart(2, '0');
+        const anio = d.getUTCFullYear();
+        const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dia = String(d.getUTCDate()).padStart(2, '0');
         return `${anio}-${mes}-${dia}`;
     }
 
@@ -1101,17 +1110,44 @@
                     <span>${nombre}:</span>
                     <div class="vaca-container">
                         ${estaDeVaca 
-                            ? `<button class="vaca-revert" onclick="toggleVacaciones('${nombre}')">🏖️ Vacaciones</button>` 
-                            : `<button class="vaca-toggle" onclick="toggleVacaciones('${nombre}')">💼 Trabajando</button>`}
+                            ? `<button class="vaca-revert" onclick="confirmarCambioVacaciones('${nombre}', false)">🏖️ Vacaciones (Regresar)</button>` 
+                            : `<button class="vaca-toggle" onclick="confirmarCambioVacaciones('${nombre}', true)">💼 Trabajando</button>`}
                     </div>
                 </li>`;
         });
     }
 
-    function toggleVacaciones(nombre) {
+    function confirmarCambioVacaciones(nombre, activar) {
+        let mensajeConfirmacion = activar 
+            ? `¿Estás seguro de poner a ${nombre} en estado Vacaciones?` 
+            : `¿Deseas regresar a ${nombre} al estado anterior (Trabajando) sin errores?`;
+
+        if (confirm(mensajeConfirmacion)) {
+            toggleVacaciones(nombre, activar);
+        }
+    }
+
+    function toggleVacaciones(nombre, forzarEstado = null) {
         if (!estado.vacaciones) estado.vacaciones = {};
-        estado.vacaciones[nombre] = !estado.vacaciones[nombre];
-        agregarNotificacion(`🏖️ ${nombre} cambió su estado de vacaciones.`);
+        
+        const estadoAnterior = !!estado.vacaciones[nombre];
+        const nuevoEstado = forzarEstado !== null ? forzarEstado : !estadoAnterior;
+        estado.vacaciones[nombre] = nuevoEstado;
+        
+        if (nuevoEstado && equipo[estado.turnoIndex] === nombre) {
+            do {
+                estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            } while (estado.vacaciones[equipo[estado.turnoIndex]]);
+        } 
+        else if (!nuevoEstado && estadoAnterior) {
+            const indexPersona = equipo.indexOf(nombre);
+            if (indexPersona !== -1) {
+                estado.turnoIndex = indexPersona;
+            }
+        }
+
+        const msgAccion = nuevoEstado ? `🏖️ ${nombre} fue marcado en vacaciones.` : `💼 ${nombre} regresó al estado activo (Trabajando) correctamente.`;
+        agregarNotificacion(msgAccion);
         guardarEstadoFirebase();
     }
 
@@ -1122,49 +1158,43 @@
 
         const hoyStr = obtenerFechaFormateada(new Date());
         
-        const gastoHoy = estado.gastos.find(g => g.fecha === hoyStr);
-        let indexActivo = estado.turnoIndex;
-        if (gastoHoy) {
-            const idxG = equipo.indexOf(gastoHoy.persona);
-            if (idxG !== -1) indexActivo = idxG;
-        }
+        const personaActual = equipo[estado.turnoIndex];
+        const gastoHoyPersonaActual = estado.gastos.find(g => g.persona === personaActual && g.fecha === hoyStr);
+        const yaCumplioHoy = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
 
-        const yaCumplioHoy = estado.ultimaFechaCumplido === hoyStr || !!gastoHoy;
-
-        const btnAvanzar = document.getElementById('btnAvanzar');
-        if (btnAvanzar) {
-            if (yaCumplioHoy) {
-                btnAvanzar.disabled = true;
-                btnAvanzar.innerText = "✅ Turno Ya Cumplido Hoy";
-            } else {
-                btnAvanzar.disabled = false;
-                btnAvanzar.innerHTML = `<svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido`;
-            }
-        }
+        document.getElementById('btnSaltar').disabled = yaCumplioHoy;
+        document.getElementById('btnCambiar').disabled = yaCumplioHoy;
+        document.getElementById('btnAvanzar').disabled = yaCumplioHoy;
 
         equipo.forEach((nombre, index) => {
             const estaEnVacaciones = estado.vacaciones ? estado.vacaciones[nombre] : false;
-            const esElActual = (index === indexActivo);
+            const esElActual = (index === estado.turnoIndex);
 
             let badgeText = '';
             let classMember = '';
             let classBadge = '';
+            let botonVacacionesExtra = '';
 
             if (estaEnVacaciones) {
                 badgeText = '🏖️ VACACIONES';
                 classMember = 'vacacion';
                 classBadge = 'vaca';
+                if (esElActual || !yaCumplioHoy) {
+                    botonVacacionesExtra = `<button class="vaca-revert" style="padding: 2px 6px; font-size: 9px; margin-right: 6px;" onclick="confirmarCambioVacaciones('${nombre}', false)">Regresar</button>`;
+                }
             } else if (esElActual) {
-                classMember = 'active';
                 if (yaCumplioHoy) {
+                    classMember = 'completed';
                     badgeText = '✅ Pagado hoy';
                     classBadge = 'done';
                 } else {
+                    classMember = 'active';
                     badgeText = '👉 TURNO ACTIVO';
                     classBadge = 'current';
+                    botonVacacionesExtra = `<button class="btn-vaca-today" onclick="confirmarCambioVacaciones('${nombre}', true)" title="Marcar vacaciones para hoy">Vacaciones</button>`;
                 }
             } else {
-                let distancia = (index - indexActivo + equipo.length) % equipo.length;
+                let distancia = (index - estado.turnoIndex + equipo.length) % equipo.length;
                 badgeText = obtenerFechaHabil(new Date(), distancia);
                 classBadge = 'badge';
             }
@@ -1175,28 +1205,27 @@
                         <img src="${avatares[nombre]}" alt="${nombre}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border);">
                         <span>${index + 1}. ${nombre}</span>
                     </div>
-                    <span class="badge ${classBadge}">${badgeText}</span>
+                    <div style="display: flex; align-items: center;">
+                        ${botonVacacionesExtra}
+                        <span class="badge ${classBadge}">${badgeText}</span>
+                    </div>
                 </div>`;
         });
 
         const todayDateEl = document.getElementById('todayDate');
-        const todayResponsableEl = document.getElementById('todayResponsable');
-        const labelResponsableEl = document.getElementById('labelResponsable');
+        if (todayDateEl) {
+            todayDateEl.innerText = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
 
-        const fechaFormateadaLarga = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
+        const resultBox = document.getElementById('resultBox');
         if (yaCumplioHoy) {
-            const personaQueCumplio = gastoHoy ? gastoHoy.persona : equipo[indexActivo];
-            labelResponsableEl.style.display = 'none';
-            todayResponsableEl.innerHTML = `${personaQueCumplio} 🎉`;
-            todayResponsableEl.style.fontSize = '22px';
-            todayDateEl.innerHTML = `El café de hoy ya fue cubierto por<br><span style="color:var(--text); font-weight:bold;">${fechaFormateadaLarga}</span>`;
+            resultBox.classList.add('completed-box');
+            document.getElementById('labelResponsable').innerText = "El café de hoy ya fue cubierto por:";
+            document.getElementById('todayResponsable').innerHTML = `${personaActual} 🎉`;
         } else {
-            labelResponsableEl.style.display = 'block';
-            labelResponsableEl.innerText = "Hoy le toca gastar a:";
-            todayResponsableEl.innerText = equipo[indexActivo];
-            todayResponsableEl.style.fontSize = '24px';
-            todayDateEl.innerText = fechaFormateadaLarga;
+            resultBox.classList.remove('completed-box');
+            document.getElementById('labelResponsable').innerText = "Hoy le toca gastar a:";
+            document.getElementById('todayResponsable').innerText = personaActual;
         }
 
         calcularDashboard();
@@ -1209,12 +1238,12 @@
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
             if (!Array.isArray(estado.gastos)) estado.gastos = [];
+            
             estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor) });
-            estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
+            
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
             
-            verificarAjusteVacaciones();
             agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}!`);
             guardarEstadoFirebase();
         }
