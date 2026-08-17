@@ -753,9 +753,26 @@
             const hoy = obtenerFechaFormateada(new Date());
             
             if (estado.ultimaFechaCumplido && estado.ultimaFechaCumplido < hoy) {
-                estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
-                estado.ultimaFechaCumplido = hoy; 
-                guardarEstadoFirebase();
+                let fechaUltimo = new Date(estado.ultimaFechaCumplido + 'T00:00:00');
+                let fechaHoyObj = new Date(hoy + 'T00:00:00');
+                
+                let diasHabilesTranscurridos = 0;
+                let iterador = new Date(fechaUltimo);
+                iterador.setDate(iterador.getDate() + 1);
+                
+                while (iterador <= fechaHoyObj) {
+                    let diaSemana = iterador.getDay();
+                    if (diaSemana !== 0 && diaSemana !== 6) {
+                        diasHabilesTranscurridos++;
+                    }
+                    iterador.setDate(iterador.getDate() + 1);
+                }
+
+                if (diasHabilesTranscurridos > 0) {
+                    estado.turnoIndex = (estado.turnoIndex + diasHabilesTranscurridos) % equipo.length;
+                    estado.ultimaFechaCumplido = hoy; 
+                    guardarEstadoFirebase();
+                }
             }
 
             const responsableHoy = equipo[estado.turnoIndex];
@@ -1207,9 +1224,11 @@
         document.getElementById('btnCambiar').disabled = yaCumplioHoy;
         document.getElementById('btnAvanzar').disabled = yaCumplioHoy;
 
-        equipo.forEach((nombre, index) => {
+        for (let i = 0; i < equipo.length; i++) {
+            const indexReal = (estado.turnoIndex + i) % equipo.length;
+            const nombre = equipo[indexReal];
             const estaEnVacaciones = estado.vacaciones ? estado.vacaciones[nombre] : false;
-            const esElActual = (index === estado.turnoIndex);
+            const esElActual = (indexReal === estado.turnoIndex);
 
             let badgeText = '';
             let classMember = '';
@@ -1235,8 +1254,7 @@
                     botonVacacionesExtra = `<button class="btn-vaca-today" onclick="confirmarCambioVacaciones('${nombre}', true)" title="Marcar vacaciones para hoy">Vacaciones</button>`;
                 }
             } else {
-                let distancia = (index - estado.turnoIndex + equipo.length) % equipo.length;
-                badgeText = obtenerFechaHabil(new Date(), distancia);
+                badgeText = obtenerFechaHabil(new Date(), i);
                 classBadge = 'badge';
             }
 
@@ -1244,14 +1262,14 @@
                 <div class="member ${classMember}">
                     <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
                         <img src="${avatares[nombre]}" alt="${nombre}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: var(--inner); border: 1px solid var(--border); flex-shrink: 0;">
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${index + 1}. ${nombre}</span>
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${i + 1}. ${nombre}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                         ${botonVacacionesExtra}
                         <span class="badge ${classBadge}">${badgeText}</span>
                     </div>
                 </div>`;
-        });
+        }
 
         const todayDateEl = document.getElementById('todayDate');
         if (todayDateEl) {
