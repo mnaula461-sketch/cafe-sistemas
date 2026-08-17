@@ -470,6 +470,30 @@
             position: relative;
             z-index: 1;
         }
+
+        /* Estilos para el Modal de Excusas de Salto */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 200;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+            width: 90%; max-width: 420px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            text-align: left;
+        }
+        .modal-card h3 { color: var(--gold); margin-top: 0; font-size: 18px; font-weight: 800; }
+        .modal-card label { font-size: 12px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; margin-top: 14px; }
+        .modal-card select, .modal-card textarea {
+            width: 100%; background: var(--inner); border: 1px solid var(--border); color: var(--text);
+            padding: 10px; border-radius: 8px; font-size: 13px; outline: none; resize: vertical;
+        }
+        .modal-card textarea { min-height: 80px; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; }
+        .btn-modal-confirm { background: var(--gold); color: #000; }
+        .btn-modal-cancel { background: var(--inner); color: var(--text); border: 1px solid var(--border) !important; }
     </style>
 </head>
 <body>
@@ -490,6 +514,30 @@
     <button class="btn-top" id="btnTheme" onclick="toggleTheme()">
         <svg viewBox="0 0 24 24"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg> Tema
     </button>
+</div>
+
+<!-- Modal para Registrar Excusas de Salto -->
+<div class="modal-overlay" id="modalSalto">
+    <div class="modal-card">
+        <h3 id="modalSaltoTitulo">🔄 Registrar Salto de Turno</h3>
+        <label for="selectTipoSalto">Motivo del Salto:</label>
+        <select id="selectTipoSalto" onchange="cambioTipoSaltoModal()">
+            <option value="Ausencia Real">Ausencia real (No vino / Falta)</option>
+            <option value="Se hizo el vivo">Se hizo el vivo (Presente pero se saltó al siguiente)</option>
+            <option value="Otro motivo">Otro motivo</option>
+        </select>
+
+        <label for="selectMiembroDestino">¿A quién se le pasa el turno?:</label>
+        <select id="selectMiembroDestino"></select>
+
+        <label for="txtDetalleSalto">Descripción / Comentario:</label>
+        <textarea id="txtDetalleSalto" placeholder="Ej: Estaba presente en la oficina pero se hizo el vivo y le pasó la carga al siguiente..."></textarea>
+
+        <div class="modal-buttons">
+            <button class="btn-modal-cancel" onclick="cerrarModalSalto()">Cancelar</button>
+            <button class="btn-modal-confirm" onclick="confirmarSaltoTurno()">Guardar y Saltar</button>
+        </div>
+    </div>
 </div>
 
 <div class="notif-panel" id="notifPanel">
@@ -550,11 +598,21 @@
     </div>
 
     <div class="stat-card">
-        <h4>📜 Historial General</h4>
+        <h4>📜 Historial General de Turnos</h4>
         <div style="max-height: 150px; overflow-y: auto;">
             <table class="history-table">
                 <thead><tr><th>Fecha</th><th>Usuario</th><th>Monto</th><th>Acción</th></tr></thead>
                 <tbody id="dashHistoryBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <h4>⚠️ Historial de Saltos / Excusas</h4>
+        <div style="max-height: 150px; overflow-y: auto;">
+            <table class="history-table">
+                <thead><tr><th>Fecha</th><th>Afectado</th><th>Motivo</th><th>Detalle</th></tr></thead>
+                <tbody id="dashSaltosBody"></tbody>
             </table>
         </div>
     </div>
@@ -576,11 +634,11 @@
                 <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">
                     <svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido
                 </button>
-                <button class="btn-secondary" id="btnSaltar" onclick="saltarTurno()">
-                    <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia
+                <button class="btn-secondary" id="btnSaltar" onclick="abrirModalSalto()">
+                    <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia / Motivo
                 </button>
                 <button class="btn-secondary" id="btnCambiar" onclick="intercambiarTurno()">
-                    <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg> Cambiar Turno
+                    <svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg> Cambiar Turno Posición
                 </button>
             </div>
 
@@ -955,6 +1013,14 @@
         }
     }
 
+    function eliminarSaltoHistorial(indexOriginal) {
+        if (confirm("¿Estás seguro de eliminar este registro de salto?")) {
+            estado.saltosHistorial.splice(indexOriginal, 1);
+            agregarNotificacion(`🗑️ Se eliminó un registro de salto`);
+            guardarEstadoFirebase();
+        }
+    }
+
     function toggleDesgloseUsuario(nombre) {
         usuarioDesglosadoAbierto = (usuarioDesglosadoAbierto === nombre) ? null : nombre;
         render();
@@ -1016,6 +1082,71 @@
         }
     }
 
+    function abrirModalSalto() {
+        const personaActual = equipo[estado.turnoIndex];
+        document.getElementById('modalSaltoTitulo').innerText = `🔄 Saltar Turno de: ${personaActual}`;
+        
+        const selectDestino = document.getElementById('selectMiembroDestino');
+        selectDestino.innerHTML = '';
+        equipo.forEach(m => {
+            if (m !== personaActual) {
+                selectDestino.innerHTML += `<option value="${m}">${m}</option>`;
+            }
+        });
+
+        document.getElementById('txtDetalleSalto').value = '';
+        document.getElementById('selectTipoSalto').value = 'Ausencia Real';
+        document.getElementById('modalSalto').classList.add('active');
+    }
+
+    function cerrarModalSalto() {
+        document.getElementById('modalSalto').classList.remove('active');
+    }
+
+    function cambioTipoSaltoModal() {
+        const tipo = document.getElementById('selectTipoSalto').value;
+        const txt = document.getElementById('txtDetalleSalto');
+        if (tipo === 'Se hizo el vivo') {
+            txt.value = "Estaba presente en la oficina pero se hizo el vivo y le pasó la carga al siguiente.";
+        } else if (tipo === 'Ausencia Real') {
+            txt.value = "No se encuentra presente / Falta justificada o inasistencia.";
+        } else {
+            txt.value = "";
+        }
+    }
+
+    function confirmarSaltoTurno() {
+        const personaActual = equipo[estado.turnoIndex];
+        const miembroDestino = document.getElementById('selectMiembroDestino').value;
+        const tipoMotivo = document.getElementById('selectTipoSalto').value;
+        const detalle = document.getElementById('txtDetalleSalto').value.trim() || "Sin observaciones adicionales.";
+        const hoyStr = obtenerFechaFormateada(new Date());
+
+        if (!miembroDestino || !equipo.includes(miembroDestino)) {
+            alert("Selecciona un miembro válido.");
+            return;
+        }
+
+        // Reorganizamos el turno poniendo al destino en la posición actual o intercambiándolos
+        const idxActual = estado.turnoIndex;
+        const idxDestino = equipo.indexOf(miembroDestino);
+        equipo[idxActual] = miembroDestino;
+        equipo[idxDestino] = personaActual;
+
+        if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
+        estado.saltosHistorial.push({
+            fecha: hoyStr,
+            persona: personaActual,
+            motivo: tipoMotivo,
+            detalle: detalle,
+            pasadoA: miembroDestino
+        });
+
+        agregarNotificacion(`⚠️ Salto registrado (${tipoMotivo}): ${personaActual} le pasó a ${miembroDestino}.`);
+        cerrarModalSalto();
+        guardarEstadoFirebase();
+    }
+
     function calcularDashboard() {
         const hoy = new Date();
         const mesActual = hoy.getMonth() + 1;
@@ -1057,15 +1188,28 @@
             }
         }
 
+        const saltosBody = document.getElementById('dashSaltosBody');
+        saltosBody.innerHTML = '';
         if (Array.isArray(estado.saltosHistorial)) {
-            estado.saltosHistorial.forEach(s => {
+            for (let i = estado.saltosHistorial.length - 1; i >= 0; i--) {
+                const s = estado.saltosHistorial[i];
                 if (s && s.fecha) {
                     const p = s.fecha.split('-');
                     if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
                         if (saltosIndiv[s.persona] !== undefined) saltosIndiv[s.persona] += 1;
                     }
+                    saltosBody.innerHTML += `
+                        <tr>
+                            <td>${s.fecha}</td>
+                            <td><strong>${s.persona}</strong></td>
+                            <td><span style="color:var(--gold); font-weight:bold;">${s.motivo}</span></td>
+                            <td>
+                                <span title="${s.detalle}">${s.detalle.length > 30 ? s.detalle.substring(0, 30) + '...' : s.detalle}</span>
+                                <button class="btn-danger" style="margin-left:4px; padding:2px 6px;" onclick="eliminarSaltoHistorial(${i})">🗑️</button>
+                            </td>
+                        </tr>`;
                 }
-            });
+            }
         }
 
         document.getElementById('dashboardMonth').innerText = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -1308,28 +1452,6 @@
         }
     }
 
-    function saltarTurno() {
-        const hoyStr = obtenerFechaFormateada(new Date());
-        const personaActual = equipo[estado.turnoIndex];
-        const candidatos = equipo.filter(m => m !== personaActual);
-        const miembroDestino = prompt(`El turno actual es de ${personaActual}.\n¿Con quién deseas cambiarlo?\n(${candidatos.join(', ')})`);
-        
-        if (miembroDestino && equipo.includes(miembroDestino) && miembroDestino !== personaActual) {
-            const idxActual = estado.turnoIndex;
-            const idxDestino = equipo.indexOf(miembroDestino);
-            equipo[idxActual] = miembroDestino;
-            equipo[idxDestino] = personaActual;
-
-            if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
-            estado.saltosHistorial.push({ fecha: hoyStr, persona: personaActual });
-            
-            agregarNotificacion(`🔄 ${personaActual} intercambió turno con ${miembroDestino}.`);
-            guardarEstadoFirebase();
-        } else if (miembroDestino) {
-            alert("Nombre no válido.");
-        }
-    }
-
     function intercambiarTurno() {
         const p1 = equipo[estado.turnoIndex];
         const p2 = prompt(`El turno actual es de ${p1}. ¿Con quién deseas intercambiar la posición? (${equipo.join(', ')}):`);
@@ -1398,7 +1520,26 @@
                     </tr>`;
             });
         } else {
-            filasHistorial = `<tr><td colspan="3" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin registros en el historial de este mes.</td></tr>`;
+            filasHistorial = `<tr><td colspan="3" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin registros en el historial este mes.</td></tr>`;
+        }
+
+        let filasSaltosPDF = '';
+        if (Array.isArray(estado.saltosHistorial) && estado.saltosHistorial.length > 0) {
+            estado.saltosHistorial.forEach(s => {
+                const p = s.fecha.split('-');
+                if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
+                    filasSaltosPDF += `
+                        <tr>
+                            <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #5C5B82;">${s.fecha}</td>
+                            <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; font-weight: 600; color: #1E1D45;">${s.persona}</td>
+                            <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #D39E2A; font-weight: bold;">${s.motivo}</td>
+                            <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #1E1D45;">${s.detalle} (Pasó a: ${s.pasadoA})</td>
+                        </tr>`;
+                }
+            });
+        }
+        if (!filasSaltosPDF) {
+            filasSaltosPDF = `<tr><td colspan="4" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin saltos ni excusas registradas este mes.</td></tr>`;
         }
 
         const elementoPdf = document.createElement('div');
@@ -1415,7 +1556,7 @@
                     </div>
                 </div>
 
-                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🏆 Medallas y Reconocimientos del Mes</h3>
+                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">🏆 Medallas y Reconocimientos del Mes</h3>
                 <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 20px;">
                     <div style="background: #F8FAFC; border-left: 4px solid #D39E2A; padding: 10px 14px; border-radius: 6px; border: 1px solid #D1CFE2; font-size: 12px;">
                         <strong>🤌 El Coño (Peor promedio):</strong> <span style="color: #D39E2A; font-weight: bold;">${elCono}</span>
@@ -1424,17 +1565,17 @@
                         <strong>💸 El Billeteado (Mayor gasto):</strong> <span style="color: #2E7D32; font-weight: bold;">${elAninado}</span>
                     </div>
                     <div style="background: #F8FAFC; border-left: 4px solid #C62828; padding: 10px 14px; border-radius: 6px; border: 1px solid #D1CFE2; font-size: 12px;">
-                        <strong>👻 El Ausente (Más saltos):</strong> <span style="color: #C62828; font-weight: bold;">${elAusente}</span>
+                        <strong>👻 El Ausente / Más Saltos:</strong> <span style="color: #C62828; font-weight: bold;">${elAusente}</span>
                     </div>
                 </div>
 
-                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">📊 Resumen Financiero por Integrante</h3>
+                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">📊 Resumen Financiero por Integrante</h3>
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                     <thead>
                         <tr style="background-color: #2B2A6B; color: #ffffff;">
-                            <th style="padding: 10px; font-size: 12px; text-align: left; border-top-left-radius: 6px;">Integrante</th>
+                            <th style="padding: 10px; font-size: 12px; text-align: left;">Integrante</th>
                             <th style="padding: 10px; font-size: 12px; text-align: center;">Turnos Cumplidos</th>
-                            <th style="padding: 10px; font-size: 12px; text-align: right; border-top-right-radius: 6px;">Total Gastado</th>
+                            <th style="padding: 10px; font-size: 12px; text-align: right;">Total Gastado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1446,13 +1587,28 @@
                     </tbody>
                 </table>
 
-                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">📜 Detalle de Movimientos del Mes</h3>
+                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">⚠️ Historial de Saltos y Excusas ("Se hizo el vivo")</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #2B2A6B; color: #ffffff;">
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Fecha</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Afectado</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Motivo</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Descripción / Comentario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasSaltosPDF}
+                    </tbody>
+                </table>
+
+                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">📜 Detalle de Turnos de Café</h3>
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
                     <thead>
                         <tr style="background-color: #2B2A6B; color: #ffffff;">
-                            <th style="padding: 8px 10px; font-size: 11px; text-align: left; border-top-left-radius: 4px;">Fecha</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Fecha</th>
                             <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Usuario</th>
-                            <th style="padding: 8px 10px; font-size: 11px; text-align: right; border-top-right-radius: 4px;">Monto ($)</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: right;">Monto ($)</th>
                         </tr>
                     </thead>
                     <tbody>
