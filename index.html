@@ -420,6 +420,7 @@
         .btn-secondary:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; opacity: 0.5; box-shadow: none; transform: none; border-color: var(--border); }
 
         .btn-mini { background: var(--navy-light); color: var(--text); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        [data-theme="light"] .btn-mini { background: #EAE8F2; color: #1E1D45; border-color: #B8B5D0; font-weight: 800; }
         .btn-mini:hover { border-color: var(--gold); }
 
         .btn-danger { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.3); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
@@ -708,7 +709,6 @@
 
 <div class="main-container">
     <div class="card">
-        <!-- TÍTULO CON DETECCIÓN DE 7 CLICS PARA SEGURIDAD -->
         <h1 id="tituloControlCafe" onclick="registrarClicTituloAdmin()">Control de Café - TI</h1>
         <p class="sub">Rotación Diaria de Café</p>
 
@@ -765,7 +765,7 @@
 
     let clicsAdminContador = 0;
     let tiempoUltimoClic = 0;
-    let adminUsuarioActual = ""; // guarda qué usuario admin inició sesión, para auditoría en notificaciones
+    let adminUsuarioActual = ""; 
 
     const avatares = {
         "Mauricio": "https://api.dicebear.com/7.x/bottts/svg?seed=MauricioTI&backgroundColor=334155",
@@ -816,7 +816,6 @@
         });
     });
 
-    // SISTEMA DE 7 CLICS PARA ABRIR EL MENÚ DE SEGURIDAD
     function registrarClicTituloAdmin() {
         const ahora = Date.now();
         if (ahora - tiempoUltimoClic > 1500) {
@@ -879,7 +878,6 @@
 
         if (!Array.isArray(estado.gastos)) estado.gastos = [];
 
-        // Aviso si ya existe un registro para esa persona en esa misma fecha
         const yaExiste = estado.gastos.some(g => g.persona === persona && g.fecha === fecha);
         if (yaExiste) {
             const continuar = confirm(`⚠️ Ya existe un registro de ${persona} con fecha ${fecha}.\n¿Deseas agregar uno adicional de todas formas?`);
@@ -887,8 +885,6 @@
         }
 
         estado.gastos.push({ fecha: fecha, persona: persona, monto: monto, producto: producto });
-        
-        // Ordenar gastos cronológicamente para mantener jerarquía de fechas
         estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
         const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
@@ -932,8 +928,6 @@
                     historicoGanadores: [],
                     notificaciones: []
                 };
-                // Auditoría: queda registrado en la consola del navegador quién reinició la BD y cuándo
-                console.warn(`[AUDITORÍA] Base de datos reiniciada por el usuario "${userIngresado}" el ${new Date().toLocaleString('es-ES')}`);
                 dbRef.set(estadoInicial).then(() => {
                     alert("🔄 Base de datos reiniciada con éxito.");
                     location.reload();
@@ -1166,10 +1160,6 @@
     }
 
     function obtenerFechaFormateada(d) {
-        // FIX: se usaba getUTCFullYear/getUTCMonth/getUTCDate, lo que causaba que
-        // el "día" cambiara a medianoche UTC en vez de medianoche hora local (Ecuador,
-        // UTC-5). Esto hacía que cualquier turno marcado después de ~7:00 pm se
-        // registrara con la fecha del día siguiente. Se usa la hora local del navegador.
         const anio = d.getFullYear();
         const mes = String(d.getMonth() + 1).padStart(2, '0');
         const dia = String(d.getDate()).padStart(2, '0');
@@ -1289,7 +1279,6 @@
             miChartProductos = null;
         }
 
-        // Ordenar de mayor a menor y quedarse con el top 8 para que el gráfico no se sature
         const entradas = Object.entries(productosConteo || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
         const labels = entradas.map(e => e[0]);
         const data = entradas.map(e => e[1]);
@@ -1297,7 +1286,6 @@
         const paletaColores = ['#D39E2A', '#4E2FB0', '#F472B6', '#4ADE80', '#3B82F6', '#F87171', '#FBBF24', '#38BDF8'];
 
         if (labels.length === 0) {
-            // Sin datos aún este mes: mostrar el canvas vacío en vez de un gráfico roto
             return;
         }
 
@@ -1411,17 +1399,15 @@
         let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let saltosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let totalGeneralMes = 0;
-        let productosConteo = {}; // cuenta cuántas veces se compró cada producto este mes
+        let productosConteo = {};
 
         const historyBody = document.getElementById('dashHistoryBody');
         if (!historyBody) return;
         historyBody.innerHTML = '';
 
-        // Asegurar orden jerárquico ascendente/descendente por fecha
         if (Array.isArray(estado.gastos)) {
             estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
             
-            // Recorrer del más reciente al más antiguo para el dashboard, o viceversa según orden deseado
             for (let i = estado.gastos.length - 1; i >= 0; i--) {
                 const g = estado.gastos[i];
                 if (g && g.fecha) {
@@ -1436,7 +1422,6 @@
 
                         const nombreProducto = (g.producto || '').trim();
                         if (nombreProducto) {
-                            // Normaliza mayúsculas/minúsculas para que "Pan" y "pan" cuenten juntos
                             const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
                             productosConteo[clave] = (productosConteo[clave] || 0) + 1;
                         }
@@ -1750,6 +1735,7 @@
         let gastosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let totalGeneralMes = 0;
+        let productosConteoPDF = {};
         const mesActual = hoy.getMonth() + 1;
         const anioActual = hoy.getFullYear();
 
@@ -1764,6 +1750,12 @@
                             turnosIndiv[g.persona] += 1;
                         }
                         totalGeneralMes += m;
+
+                        const nombreProducto = (g.producto || '').trim();
+                        if (nombreProducto) {
+                            const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
+                            productosConteoPDF[clave] = (productosConteoPDF[clave] || 0) + 1;
+                        }
                     }
                 }
             });
@@ -1782,6 +1774,21 @@
                     <td style="padding: 10px; border-bottom: 1px solid #D1CFE2; font-size: 13px; text-align: right; font-weight: bold; color: #D39E2A;">$${gastosIndiv[nombre].toFixed(2)}</td>
                 </tr>`;
         });
+
+        // NUEVO: Generar filas para la tabla de lo más comprado del mes en el PDF
+        let filasProductosPDF = '';
+        const productosOrdenadosPDF = Object.entries(productosConteoPDF).sort((a, b) => b[1] - a[1]);
+        if (productosOrdenadosPDF.length > 0) {
+            productosOrdenadosPDF.forEach(([prod, veces]) => {
+                filasProductosPDF += `
+                    <tr>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; font-weight: 600; color: #1E1D45;">${prod}</td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; text-align: center; color: #5C5B82; font-weight: bold;">${veces} ${veces === 1 ? 'vez' : 'veces'}</td>
+                    </tr>`;
+            });
+        } else {
+            filasProductosPDF = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin productos registrados este mes.</td></tr>`;
+        }
 
         let filasHistorial = '';
         if (Array.isArray(estado.gastos) && estado.gastos.length > 0) {
@@ -1859,6 +1866,20 @@
                             <td colspan="2" style="padding: 10px; font-weight: bold; text-align: right; color: #D39E2A; font-size: 13px;">TOTAL GENERAL DEL GRUPO:</td>
                             <td style="padding: 10px; font-weight: bold; text-align: right; color: #D39E2A; font-size: 14px;">$${totalGeneralMes.toFixed(2)}</td>
                         </tr>
+                    </tbody>
+                </table>
+
+                <!-- NUEVA SECCIÓN EN EL PDF: LO MÁS COMPRADO DEL MES -->
+                <h3 style="color: #D39E2A; font-size: 13px; margin-bottom: 8px; text-transform: uppercase;">☕ Lo Más Comprado del Mes (Frecuencia)</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background-color: #2B2A6B; color: #ffffff;">
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Producto / Ítem</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: center;">Veces Comprado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filasProductosPDF}
                     </tbody>
                 </table>
 
