@@ -271,6 +271,10 @@
             width: 100% !important;
             height: 180px !important;
         }
+        canvas#productosChart {
+            width: 100% !important;
+            height: 180px !important;
+        }
 
         .main-container {
             width: 100%;
@@ -590,6 +594,9 @@
             <label for="adminInputFecha">Fecha del Gasto (A voluntad):</label>
             <input type="date" id="adminInputFecha">
 
+            <label for="adminInputProducto">¿Qué se compró?:</label>
+            <input type="text" id="adminInputProducto" placeholder="Ej:Pan, tostadas, humas, tortillas, cake, otro...">
+
             <label for="adminInputMonto">Monto ($):</label>
             <input type="number" id="adminInputMonto" step="0.05" value="1.80">
 
@@ -643,6 +650,13 @@
     </div>
 
     <div class="stat-card">
+        <h4>☕ Lo Más Comprado del Mes</h4>
+        <div class="chart-container">
+            <canvas id="productosChart"></canvas>
+        </div>
+    </div>
+
+    <div class="stat-card">
         <h4>🏅 Medallas Actuales</h4>
         <ul class="stat-list" id="dashBadgesList">
             <li><span>🤌 El Coño:</span> <strong id="badgeCono" style="color:var(--gold);">Nadie</strong></li>
@@ -675,7 +689,7 @@
         <h4>📜 Historial General de Turnos (Jerárquico)</h4>
         <div style="max-height: 150px; overflow-y: auto;">
             <table class="history-table">
-                <thead><tr><th>Fecha</th><th>Usuario</th><th>Monto</th><th>Acción</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Usuario</th><th>Producto</th><th>Monto</th><th>Acción</th></tr></thead>
                 <tbody id="dashHistoryBody"></tbody>
             </table>
         </div>
@@ -761,6 +775,7 @@
     };
 
     let miChart = null;
+    let miChartProductos = null;
     let usuarioDesglosadoAbierto = null;
     let notifAbierto = false;
 
@@ -842,6 +857,7 @@
 
     function abrirModalAdminLibre() {
         document.getElementById('adminInputFecha').value = obtenerFechaFormateada(new Date());
+        document.getElementById('adminInputProducto').value = '';
         document.getElementById('adminSelectTurnoIndex').value = estado.turnoIndex;
         document.getElementById('modalAdminLibre').classList.add('active');
     }
@@ -853,6 +869,7 @@
     function adminForzarAgregarGasto() {
         const persona = document.getElementById('adminSelectPersona').value;
         const fecha = document.getElementById('adminInputFecha').value;
+        const producto = document.getElementById('adminInputProducto').value.trim();
         const monto = parseFloat(document.getElementById('adminInputMonto').value);
 
         if (!fecha || isNaN(monto) || monto < 0) {
@@ -869,15 +886,17 @@
             if (!continuar) return;
         }
 
-        estado.gastos.push({ fecha: fecha, persona: persona, monto: monto });
+        estado.gastos.push({ fecha: fecha, persona: persona, monto: monto, producto: producto });
         
         // Ordenar gastos cronológicamente para mantener jerarquía de fechas
         estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
         const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
-        agregarNotificacion(`🛠️ [Admin] Se agregó pago de $${monto.toFixed(2)} a ${persona} con fecha ${fecha}${firmaAdmin}.`);
+        const detalleProducto = producto ? ` - ${producto}` : '';
+        agregarNotificacion(`🛠️ [Admin] Se agregó pago de $${monto.toFixed(2)} a ${persona} con fecha ${fecha}${detalleProducto}${firmaAdmin}.`);
         guardarEstadoFirebase();
         alert(`✅ Gasto agregado exitosamente para ${persona} (${fecha}).`);
+        document.getElementById('adminInputProducto').value = '';
         cerrarModalAdminLibre();
     }
 
@@ -1106,6 +1125,11 @@
             miChart.options.scales.y.ticks.color = esDark ? '#E6E5F5' : '#1E1D45';
             miChart.update();
         }
+        if (miChartProductos) {
+            const esDark = tema === 'dark';
+            miChartProductos.options.plugins.legend.labels.color = esDark ? '#E6E5F5' : '#1E1D45';
+            miChartProductos.update();
+        }
     }
 
     function toggleTheme() {
@@ -1132,6 +1156,10 @@
                     miChart.update();
                 } else {
                     calcularDashboard();
+                }
+                if (miChartProductos) {
+                    miChartProductos.resize();
+                    miChartProductos.update();
                 }
             }, 150);
         }
@@ -1177,6 +1205,12 @@
         const nuevoMonto = prompt(`Editar monto del turno de ${gasto.persona} (${gasto.fecha}):`, gasto.monto.toFixed(2));
         if (nuevoMonto !== null && !isNaN(parseFloat(nuevoMonto)) && parseFloat(nuevoMonto) >= 0) {
             estado.gastos[indexOriginal].monto = parseFloat(nuevoMonto);
+
+            const nuevoProducto = prompt(`¿Qué se compró en este turno? (Ej: Pan, tostadas, humas, tortillas, cake, otro...):`, gasto.producto || "");
+            if (nuevoProducto !== null) {
+                estado.gastos[indexOriginal].producto = nuevoProducto.trim();
+            }
+
             agregarNotificacion(`✏️ Se editó el turno de ${gasto.persona}`);
             guardarEstadoFirebase();
         }
@@ -1238,6 +1272,51 @@
                 scales: {
                     x: { ticks: { color: colorTexto } },
                     y: { ticks: { color: colorTexto }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function renderGraficoProductos(productosConteo) {
+        const canvasEl = document.getElementById('productosChart');
+        if (!canvasEl) return;
+        const ctx = canvasEl.getContext('2d');
+        const esDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const colorTexto = esDark ? '#E6E5F5' : '#1E1D45';
+
+        if (miChartProductos) {
+            miChartProductos.destroy();
+            miChartProductos = null;
+        }
+
+        // Ordenar de mayor a menor y quedarse con el top 8 para que el gráfico no se sature
+        const entradas = Object.entries(productosConteo || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const labels = entradas.map(e => e[0]);
+        const data = entradas.map(e => e[1]);
+
+        const paletaColores = ['#D39E2A', '#4E2FB0', '#F472B6', '#4ADE80', '#3B82F6', '#F87171', '#FBBF24', '#38BDF8'];
+
+        if (labels.length === 0) {
+            // Sin datos aún este mes: mostrar el canvas vacío en vez de un gráfico roto
+            return;
+        }
+
+        miChartProductos = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Veces comprado este mes',
+                    data: data,
+                    backgroundColor: paletaColores,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: colorTexto, boxWidth: 12, font: { size: 10 } } }
                 }
             }
         });
@@ -1332,6 +1411,7 @@
         let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let saltosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let totalGeneralMes = 0;
+        let productosConteo = {}; // cuenta cuántas veces se compró cada producto este mes
 
         const historyBody = document.getElementById('dashHistoryBody');
         if (!historyBody) return;
@@ -1353,11 +1433,19 @@
                             turnosIndiv[g.persona] += 1;
                         }
                         totalGeneralMes += montoVal;
+
+                        const nombreProducto = (g.producto || '').trim();
+                        if (nombreProducto) {
+                            // Normaliza mayúsculas/minúsculas para que "Pan" y "pan" cuenten juntos
+                            const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
+                            productosConteo[clave] = (productosConteo[clave] || 0) + 1;
+                        }
                     }
                     historyBody.innerHTML += `
                         <tr>
                             <td>${g.fecha}</td>
                             <td>${g.persona}</td>
+                            <td>${g.producto ? g.producto : '<span style="color:var(--muted);">Sin especificar</span>'}</td>
                             <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
                             <td>
                                 <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
@@ -1443,6 +1531,7 @@
                             filasTurnos += `
                                 <tr>
                                     <td>${g.fecha}</td>
+                                    <td>${g.producto ? g.producto : '<span style="color:var(--muted);">-</span>'}</td>
                                     <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
                                     <td>
                                         <button class="btn-mini" onclick="editarGastoHistorial(${index})">✏️</button>
@@ -1470,7 +1559,7 @@
                         <div style="font-size:10px; font-weight:bold; margin-bottom:4px; color:var(--gold);">Turnos de ${nombre}:</div>
                         ${filasTurnos ? `
                             <table class="history-table">
-                                <thead><tr><th>Fecha</th><th>Monto</th><th>Acción</th></tr></thead>
+                                <thead><tr><th>Fecha</th><th>Producto</th><th>Monto</th><th>Acción</th></tr></thead>
                                 <tbody>${filasTurnos}</tbody>
                             </table>
                         ` : '<small style="color:var(--muted); font-size:10px;">Sin turnos este mes.</small>'}
@@ -1482,6 +1571,7 @@
         document.getElementById('dashProyeccionMonth').innerText = `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`;
 
         renderGraficoChart(gastosIndiv);
+        renderGraficoProductos(productosConteo);
 
         const vacList = document.getElementById('dashVacacionesList');
         vacList.innerHTML = '';
@@ -1620,15 +1710,18 @@
         const valor = prompt(`¿Cuánto gastó ${persona}? ($):`, "1.80");
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
+            const producto = prompt(`¿Qué fue lo que se compró hoy? (Ej: Pan, tostadas, humas, tortillas, cake, otro.)`, "") || "";
+
             if (!Array.isArray(estado.gastos)) estado.gastos = [];
             
-            estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor) });
+            estado.gastos.push({ fecha: hoyStr, persona: persona, monto: parseFloat(valor), producto: producto.trim() });
             estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
             
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
             
-            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}!`);
+            const detalleProducto = producto.trim() ? ` (${producto.trim()})` : '';
+            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!`);
             guardarEstadoFirebase();
         }
     }
@@ -1697,11 +1790,12 @@
                     <tr>
                         <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #5C5B82;">${g.fecha}</td>
                         <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; font-weight: 600; color: #1E1D45;">${g.persona}</td>
+                        <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #5C5B82;">${g.producto || '-'}</td>
                         <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; text-align: right; font-weight: bold; color: #D39E2A;">$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
                     </tr>`;
             });
         } else {
-            filasHistorial = `<tr><td colspan="3" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin registros en el historial este mes.</td></tr>`;
+            filasHistorial = `<tr><td colspan="4" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin registros en el historial este mes.</td></tr>`;
         }
 
         let filasSaltosPDF = '';
@@ -1789,6 +1883,7 @@
                         <tr style="background-color: #2B2A6B; color: #ffffff;">
                             <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Fecha</th>
                             <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Usuario</th>
+                            <th style="padding: 8px 10px; font-size: 11px; text-align: left;">Producto</th>
                             <th style="padding: 8px 10px; font-size: 11px; text-align: right;">Monto ($)</th>
                         </tr>
                     </thead>
