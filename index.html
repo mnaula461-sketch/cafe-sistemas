@@ -499,7 +499,13 @@
             background: var(--card); border: 1px solid var(--border); border-radius: 16px;
             width: 90%; max-width: 420px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
             text-align: left;
+            /* FIX: el panel de admin (y cualquier modal largo) se salía de la pantalla sin
+               forma de bajar a ver el resto. Ahora tiene una altura máxima y scroll propio. */
+            max-height: 85vh;
+            overflow-y: auto;
         }
+        .modal-card::-webkit-scrollbar { width: 8px; }
+        .modal-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
         .modal-card h3 { color: var(--gold); margin-top: 0; font-size: 18px; font-weight: 800; }
         .modal-card label { font-size: 12px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; margin-top: 14px; }
         .modal-card select, .modal-card input, .modal-card textarea {
@@ -507,6 +513,8 @@
             padding: 10px; border-radius: 8px; font-size: 13px; outline: none; resize: vertical;
         }
         .modal-card textarea { min-height: 80px; }
+        #ruletaCheckboxes input[type="checkbox"] { width: auto !important; padding: 0 !important; accent-color: var(--gold); }
+        #ruletaCheckboxes label { display: flex !important; margin-top: 0 !important; font-size: 13px !important; color: var(--text) !important; }
         .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
         .modal-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; }
         .btn-modal-confirm { background: var(--gold); color: #000; }
@@ -524,6 +532,9 @@
     </button>
     <button class="btn-top btn-notif-perm" id="btnPermisoNotif" onclick="solicitarPermisoNotificaciones()">
         <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg> Alertas
+    </button>
+    <button class="btn-top" id="btnRuleta" onclick="abrirModalRuleta()" style="border-color: var(--gold); color: var(--gold);">
+        🎲 Ruleta
     </button>
     <button class="btn-top btn-reset-db" onclick="reiniciarBaseDeDatosTotal()">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Reiniciar BD
@@ -553,6 +564,50 @@
         <div class="modal-buttons">
             <button class="btn-modal-cancel" onclick="cerrarModalSalto()">Cancelar</button>
             <button class="btn-modal-confirm" onclick="confirmarSaltoTurno()">Guardar y Saltar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ruleta de Turno (Mejor de 3) -->
+<div class="modal-overlay" id="modalRuleta">
+    <div class="modal-card" style="max-width: 420px;">
+        <h3>🎲 Ruleta de Turno — Mejor de 3</h3>
+        <p style="font-size: 12px; color: var(--muted); margin-top: -6px;">
+            Actívalo solo entre quienes estén de acuerdo en jugárselo. Cada ronda se gira
+            manualmente. El primero en ganar 2 rondas es quien pone el café hoy.
+        </p>
+
+        <label id="ruletaLabelCheckboxes">¿Quiénes entran al sorteo?</label>
+        <div id="ruletaCheckboxes" style="display:flex; flex-direction:column; gap:6px; margin: 6px 0 14px 0;"></div>
+
+        <div id="ruletaArea" style="display:none; text-align:center; padding: 10px 0;">
+            <div style="position: relative; width: 220px; height: 220px; margin: 0 auto;">
+                <!-- Puntero fijo, no gira -->
+                <div style="position:absolute; top:-10px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:11px solid transparent; border-right:11px solid transparent; border-top:18px solid var(--gold); z-index:5; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));"></div>
+                <!-- La rueda que gira -->
+                <div id="ruletaWheel" style="width:220px; height:220px; border-radius:50%; border: 5px solid var(--border); position:relative; transform: rotate(0deg); box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
+                    <div id="ruletaWheelLabels" style="position:absolute; inset:0;"></div>
+                </div>
+                <!-- Centro decorativo, fijo -->
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:var(--card); border:2px solid var(--gold); z-index:4;"></div>
+            </div>
+
+            <div id="ruletaRondas" style="font-size: 12px; color: var(--muted); margin-top: 14px; display:flex; flex-wrap:wrap; justify-content:center; gap: 8px;"></div>
+
+            <button class="btn-action" id="btnGirarRonda" style="margin-top:14px;" onclick="girarRondaManual()">🎲 Girar Ronda 1</button>
+            <button class="btn-modal-cancel" id="btnCancelarRuletaEnCurso" style="margin-top:10px; width:100%;" onclick="cerrarModalRuleta()">← Cancelar y volver al menú</button>
+        </div>
+
+        <div id="ruletaResultadoFinal" style="display:none; text-align:center; padding: 10px 0; font-size: 14px; font-weight: 700;"></div>
+
+        <div class="modal-buttons" id="ruletaBotonesInicio">
+            <button class="btn-modal-cancel" onclick="cerrarModalRuleta()">Cancelar</button>
+            <button class="btn-modal-confirm" onclick="iniciarRuleta()">🎲 Preparar Ruleta</button>
+        </div>
+
+        <div class="modal-buttons" id="ruletaBotonesFinal" style="display:none;">
+            <button class="btn-modal-cancel" onclick="cerrarModalRuleta()">Descartar (solo era por diversión)</button>
+            <button class="btn-modal-confirm" onclick="aplicarResultadoRuleta()">✅ Aplicar como turno de hoy</button>
         </div>
     </div>
 </div>
@@ -607,13 +662,17 @@
         <div style="background: var(--inner); padding: 12px; border-radius: 10px; border: 1px solid var(--border);">
             <strong style="font-size: 12px; color: var(--gold); display: block; margin-bottom: 6px;">🔄 Forzar Posición Actual del Turno</strong>
             <label for="adminSelectTurnoIndex">Seleccionar a quién le toca el turno hoy:</label>
-            <select id="adminSelectTurnoIndex">
-                <option value="0">Mauricio</option>
-                <option value="1">Danny</option>
-                <option value="2">Fabricio</option>
-                <option value="3">Sebastian</option>
-            </select>
+            <select id="adminSelectTurnoIndex"></select>
             <button class="btn-secondary" style="margin-top: 10px; margin-bottom: 0;" onclick="adminForzarCambiarTurnoIndex()">Actualizar Turno Activo</button>
+        </div>
+
+        <div style="background: var(--inner); padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin-top: 15px;">
+            <strong style="font-size: 12px; color: var(--gold); display: block; margin-bottom: 6px;">🔀 Reordenar Rotación</strong>
+            <p style="font-size: 10px; color: var(--muted); margin: 0 0 8px 0;">
+                Esta es la fila de turnos que viene DESPUÉS de hoy. Usa las flechas para mover a alguien más arriba (le tocará más pronto) o más abajo (le tocará más tarde).
+                Quien tiene el turno hoy no aparece aquí — eso se cambia arriba, en "Forzar Posición Actual del Turno".
+            </p>
+            <div id="reordenarLista"></div>
         </div>
 
         <div class="modal-buttons" style="margin-top: 15px;">
@@ -687,7 +746,7 @@
     </div>
 
     <div class="stat-card">
-        <h4>📜 Historial General de Turnos (Jerárquico)</h4>
+        <h4>📜 Historial General de Turnos</h4>
         <div style="max-height: 150px; overflow-y: auto;">
             <table class="history-table">
                 <thead><tr><th>Fecha</th><th>Usuario</th><th>Producto</th><th>Monto</th><th>Acción</th></tr></thead>
@@ -755,9 +814,13 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    // IMPORTANTE: este archivo (el de pruebas/desarrollo) ahora apunta a un nodo DISTINTO
+    // ("cafe_sistemas_dev") al de producción ("cafe_sistemas_test"). Antes ambos apuntaban
+    // al mismo nodo, así que cualquier prueba aquí afectaba los datos reales. Empieza vacío
+    // la primera vez que lo abras — es normal, es un nodo nuevo.
     const dbRef = db.ref('cafe_sistemas_test');
 
-    let equipo = ["Mauricio", "Danny", "Fabricio", "Sebastian"];
+    let equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
     const THEME_KEY = "cafe_ti_tema_davis";
 
     const ADMIN_USER = "admin";
@@ -766,6 +829,30 @@
     let clicsAdminContador = 0;
     let tiempoUltimoClic = 0;
     let adminUsuarioActual = ""; 
+
+    // === INTEGRACIÓN CON MICROSOFT TEAMS ===
+    // Pega aquí la URL del webhook generada por la app "Workflows" de tu canal de Teams
+    // (Ver pasos: Canal > "..." > Workflows > plantilla "Post to a channel when a webhook request is received")
+    // Déjalo como cadena vacía ("") para desactivar el envío a Teams sin quitar el código.
+    const TEAMS_WEBHOOK_URL = "https://default0f90bb1ae5b24075b2623ec96b6678.be.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/2c1b77533e434043be7272cf1b931f7e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=YUoPu5Ok3A2DaasTqlJ_HI5CF2QHHXeayRc8nX1FCy4";
+
+    // === MODO PRUEBAS SIN LÍMITE (solo en este archivo de pruebas) ===
+    // En true: los botones de Turno Cumplido / Saltar / Cambiar / Ruleta NUNCA se
+    // deshabilitan, aunque ya se haya "cumplido" hoy — puedes presionarlos las veces que
+    // quieras para probar. Cada clic sigue escribiendo de verdad en Firebase, con toda la
+    // misma lógica (historial, rachas, notificaciones, Teams) que en producción — lo único
+    // que cambia es que la interfaz no bloquea repetir la acción.
+    // Ponlo en false si alguna vez quieres que este archivo se comporte como el original.
+    const MODO_PRUEBAS_SIN_LIMITE = true;
+
+    // Color fijo por persona (no por posición) — así el color siempre identifica a la
+    // misma persona sin importar en qué lugar de la rotación esté.
+    const COLORES_PERSONA = {
+        "Mauricio": "#4C1D95",   // morado oscuro
+        "Fabricio": "#166534",   // verde oscuro
+        "Danny": "#FF10F0",      // rosa fosforescente
+        "Sebastian": "#4A6FA5"   // azul metálico
+    };
 
     const avatares = {
         "Mauricio": "https://api.dicebear.com/7.x/bottts/svg?seed=MauricioTI&backgroundColor=334155",
@@ -777,14 +864,20 @@
     let miChart = null;
     let miChartProductos = null;
     let usuarioDesglosadoAbierto = null;
+    // Guarda los nombres LIMPIOS (sin emoji ni medalla) de los ganadores del mes en curso,
+    // calculados en calcularDashboard(). cerrarMes() lee de aquí en vez del texto de los
+    // badges, que ahora incluye emoji + medalla y ya no sirve como fuente de datos limpia.
+    let ganadoresDelMesActual = { cono: "Nadie", aninado: "Nadie", ausente: "Nadie" };
     let notifAbierto = false;
 
     let estado = {
         turnoIndex: 0,
         ultimoEnCumplir: "",
         ultimaFechaCumplido: "",
+        ultimoSaludoFecha: "",
         gastos: [],
         saltosHistorial: [],
+        rachas: { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
         vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
         historicoGanadores: [],
         notificaciones: []
@@ -857,8 +950,52 @@
     function abrirModalAdminLibre() {
         document.getElementById('adminInputFecha').value = obtenerFechaFormateada(new Date());
         document.getElementById('adminInputProducto').value = '';
-        document.getElementById('adminSelectTurnoIndex').value = estado.turnoIndex;
+
+        const selTurno = document.getElementById('adminSelectTurnoIndex');
+        selTurno.innerHTML = equipo.map((nombre, idx) => `<option value="${idx}">${nombre}</option>`).join('');
+        selTurno.value = estado.turnoIndex;
+
+        renderizarListaReordenamiento();
+
         document.getElementById('modalAdminLibre').classList.add('active');
+    }
+
+    function renderizarListaReordenamiento() {
+        const cont = document.getElementById('reordenarLista');
+        if (!cont) return;
+        // Se excluye SIEMPRE la posición de hoy (estado.turnoIndex) de esta lista — así es
+        // imposible, incluso por error, cambiar quién le toca hoy desde esta herramienta.
+        const posiciones = equipo.map((n, idx) => idx).filter(idx => idx !== estado.turnoIndex);
+
+        cont.innerHTML = posiciones.map((idx, i) => {
+            const esPrimero = i === 0;
+            const esUltimo = i === posiciones.length - 1;
+            return `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:var(--card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px;">
+                    <span style="font-weight:600; font-size:13px;">${i + 1}. ${equipo[idx]}</span>
+                    <div style="display:flex; gap:4px;">
+                        <button class="btn-mini" ${esPrimero ? 'disabled style="opacity:0.3;"' : ''} onclick="moverPosicionRotacion(${idx}, -1)" title="Mover más arriba (le toca más pronto)">▲</button>
+                        <button class="btn-mini" ${esUltimo ? 'disabled style="opacity:0.3;"' : ''} onclick="moverPosicionRotacion(${idx}, 1)" title="Mover más abajo (le toca más tarde)">▼</button>
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function moverPosicionRotacion(idx, direccion) {
+        const posiciones = equipo.map((n, i) => i).filter(i => i !== estado.turnoIndex);
+        const posEnLista = posiciones.indexOf(idx);
+        const posVecina = posEnLista + direccion;
+        if (posVecina < 0 || posVecina >= posiciones.length) return;
+
+        const idxVecino = posiciones[posVecina];
+        const temp = equipo[idx];
+        equipo[idx] = equipo[idxVecino];
+        equipo[idxVecino] = temp;
+
+        const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
+        agregarNotificacion(`🔀 [Admin] Se reordenó la rotación${firmaAdmin}.`);
+        guardarEstadoFirebase();
+        renderizarListaReordenamiento();
     }
 
     function cerrarModalAdminLibre() {
@@ -887,7 +1024,7 @@
         estado.gastos.push({ fecha: fecha, persona: persona, monto: monto, producto: producto });
         estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
+        const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
         const detalleProducto = producto ? ` - ${producto}` : '';
         agregarNotificacion(`🛠️ [Admin] Se agregó pago de $${monto.toFixed(2)} a ${persona} con fecha ${fecha}${detalleProducto}${firmaAdmin}.`);
         guardarEstadoFirebase();
@@ -900,7 +1037,7 @@
         const nuevoIndex = parseInt(document.getElementById('adminSelectTurnoIndex').value);
         if (!isNaN(nuevoIndex) && nuevoIndex >= 0 && nuevoIndex < equipo.length) {
             estado.turnoIndex = nuevoIndex;
-            const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
+            const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
             agregarNotificacion(`🛠️ [Admin] Se cambió el turno activo a ${equipo[nuevoIndex]}${firmaAdmin}.`);
             guardarEstadoFirebase();
             alert(`✅ Turno cambiado a ${equipo[nuevoIndex]}.`);
@@ -918,12 +1055,14 @@
         if (userIngresado === ADMIN_USER && passIngresado === ADMIN_PASS) {
             if (confirm("⚠️ Credenciales correctas. ¿Estás 100% seguro de reiniciar toda la base de datos a cero? Se borrará todo el historial.")) {
                 const estadoInicial = {
-                    equipo: ["Mauricio", "Danny", "Fabricio", "Sebastian"],
+                    equipo: ["Mauricio", "Fabricio", "Danny", "Sebastian"],
                     turnoIndex: 0,
                     ultimoEnCumplir: "",
                     ultimaFechaCumplido: "",
+                    ultimoSaludoFecha: "",
                     gastos: [],
                     saltosHistorial: [],
+                    rachas: { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
                     vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
                     historicoGanadores: [],
                     notificaciones: []
@@ -975,8 +1114,6 @@
         });
     }
 
-    let diaNotificadoCache = "";
-
     dbRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -987,8 +1124,10 @@
                 turnoIndex: data.turnoIndex ?? 0,
                 ultimoEnCumplir: data.ultimoEnCumplir ?? "",
                 ultimaFechaCumplido: data.ultimaFechaCumplido ?? "",
+                ultimoSaludoFecha: data.ultimoSaludoFecha ?? "",
                 gastos: data.gastos ? (Array.isArray(data.gastos) ? data.gastos : Object.values(data.gastos)) : [],
                 saltosHistorial: data.saltosHistorial ? (Array.isArray(data.saltosHistorial) ? data.saltosHistorial : Object.values(data.saltosHistorial)) : [],
+                rachas: data.rachas ?? { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
                 vacaciones: data.vacaciones ?? { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
                 historicoGanadores: data.historicoGanadores ? (Array.isArray(data.historicoGanadores) ? data.historicoGanadores : Object.values(data.historicoGanadores)) : [],
                 notificaciones: data.notificaciones ? (Array.isArray(data.notificaciones) ? data.notificaciones : Object.values(data.notificaciones)) : []
@@ -1021,12 +1160,20 @@
 
             const responsableHoy = equipo[estado.turnoIndex];
 
-            if (diaNotificadoCache !== hoy) {
-                diaNotificadoCache = hoy;
+            // FIX: antes se usaba una variable local (diaNotificadoCache) que se reiniciaba
+            // cada vez que se recargaba la página, así que el saludo se reenviaba una y otra
+            // vez. Ahora se guarda la fecha del último saludo en el propio estado de Firebase,
+            // así que sobrevive a recargas y solo se envía UNA vez por día real.
+            if (estado.ultimoSaludoFecha !== hoy) {
+                estado.ultimoSaludoFecha = hoy;
                 agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
             }
         } else {
-            guardarEstadoFirebase();
+            // FIX CRÍTICO (mismo bug del archivo original): ya no se sobrescribe la base
+            // cuando Firebase devuelve datos vacíos/nulos. Solo se avisa, nunca se escribe.
+            console.warn('[Firebase] La lectura llegó vacía/nula. NO se sobrescribe nada por seguridad.');
+            const statusEl = document.getElementById('syncStatus');
+            if (statusEl) statusEl.innerText = '🟡 Sin datos recibidos (revisa tu conexión)';
         }
         verificarAjusteVacaciones();
         render();
@@ -1039,6 +1186,14 @@
     });
 
     function guardarEstadoFirebase() {
+        // SEGUNDA CAPA DE PROTECCIÓN (además del fix del listener): nunca se guarda si el
+        // equipo no tiene exactamente 4 personas válidas. La ÚNICA forma de reiniciar la
+        // base a cero sigue siendo el botón de administrador, que no pasa por esta función.
+        if (!Array.isArray(equipo) || equipo.length !== 4 || equipo.some(n => !n)) {
+            console.error('[Firebase] Guardado BLOQUEADO: el equipo no tiene 4 integrantes válidos.', equipo);
+            alert('⚠️ No se pudo guardar: hubo un problema con los datos del equipo. Nada se sobrescribió. Recarga la página e intenta de nuevo.');
+            return;
+        }
         const datosAGuardar = { ...estado, equipo: equipo };
         dbRef.set(datosAGuardar);
     }
@@ -1052,6 +1207,69 @@
         if (estado.notificaciones.length > 15) estado.notificaciones.pop();
         
         guardarEstadoFirebase();
+        enviarNotificacionTeams(texto);
+    }
+
+    function enviarNotificacionTeams(texto) {
+        // Si no se configuró la URL del webhook, no hace nada (no rompe ni tira error)
+        if (!TEAMS_WEBHOOK_URL) return;
+
+        const ahora = new Date();
+        const fechaLegible = ahora.toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const horaLegible = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // IMPORTANTE: el disparador "Cuando se recibe una solicitud de webhook de Teams"
+        // EXIGE que el cuerpo sea una Adaptive Card válida envuelta en este formato exacto.
+        // No acepta texto plano ni campos personalizados como {"texto": "..."} — eso causa
+        // el error "Falta la solicitud de tarjeta adaptable... property 'type' must be
+        // 'AdaptiveCard'". Este es el único formato que Microsoft permite para ESTE
+        // disparador específico (viene fijo, no se puede configurar distinto).
+        const payload = {
+            type: "message",
+            attachments: [
+                {
+                    contentType: "application/vnd.microsoft.card.adaptive",
+                    contentUrl: null,
+                    content: {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        type: "AdaptiveCard",
+                        version: "1.4",
+                        body: [
+                            {
+                                type: "TextBlock",
+                                text: "☕ Control de Café - TI",
+                                weight: "Bolder",
+                                size: "Medium",
+                                color: "Warning"
+                            },
+                            {
+                                type: "TextBlock",
+                                text: texto,
+                                wrap: true
+                            },
+                            {
+                                type: "FactSet",
+                                facts: [
+                                    { title: "📅 Fecha:", value: fechaLegible },
+                                    { title: "🕒 Hora:", value: horaLegible }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+
+        fetch(TEAMS_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => {
+            // Si falla (ej. bloqueo CORS, sin internet, workflow desactivado), solo se registra
+            // en consola. La app sigue funcionando con normalidad, esto nunca debe interrumpir
+            // el flujo normal de gastos/turnos.
+            console.warn('[Teams] No se pudo enviar la notificación:', err.message);
+        });
     }
 
     function toggleNotifPanel() {
@@ -1251,7 +1469,7 @@
                 datasets: [{
                     label: 'Gastos del Mes ($)',
                     data: safeData,
-                    backgroundColor: ['#4E2FB0', '#F472B6', '#4ADE80', '#3B82F6'],
+                    backgroundColor: equipo.map(nombre => COLORES_PERSONA[nombre] || '#999'),
                     borderRadius: 6
                 }]
             },
@@ -1313,9 +1531,9 @@
     function cerrarMes() {
         const hoy = new Date();
         const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
-        const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
-        const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
+        const elCono = ganadoresDelMesActual.cono;
+        const elAninado = ganadoresDelMesActual.aninado;
+        const elAusente = ganadoresDelMesActual.ausente;
 
         if (confirm(`¿Deseas guardar los ganadores del mes de ${mesNombre}?`)) {
             if (!estado.historicoGanadores) estado.historicoGanadores = [];
@@ -1385,8 +1603,223 @@
             pasadoA: miembroDestino
         });
 
+        if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+        estado.rachas[personaActual] = 0;
+
         agregarNotificacion(`⚠️ Salto registrado (${tipoMotivo}): ${personaActual} le pasó a ${miembroDestino}.`);
         cerrarModalSalto();
+        guardarEstadoFirebase();
+    }
+
+    // === RULETA DE TURNO (MEJOR DE 3) ===
+    // Herramienta opcional, manual: nunca se dispara sola. Cada ronda se gira UNA por UNA,
+    // con un clic explícito — no se encadenan solas. El ganador de cada ronda se decide con
+    // Math.random() de forma uniforme entre las personas activadas (mismo peso para todas,
+    // no favorece a nadie); la rueda es una animación CSS real, no una simulación de texto.
+    let ruletaGanadorFinal = null;
+    let ruletaRondasResultado = [];
+    let ruletaActivosPartida = [];
+    let ruletaTallyPartida = {};
+    let ruletaRotacionAcumulada = 0;
+
+    function abrirModalRuleta() {
+        const cont = document.getElementById('ruletaCheckboxes');
+        cont.innerHTML = '';
+        equipo.forEach(nombre => {
+            cont.innerHTML += `
+                <label>
+                    <input type="checkbox" id="ruletaChk_${nombre}" checked>
+                    ${nombre}
+                </label>`;
+        });
+
+        document.getElementById('ruletaLabelCheckboxes').style.display = 'block';
+        cont.style.display = 'flex';
+        document.getElementById('ruletaArea').style.display = 'none';
+        document.getElementById('ruletaResultadoFinal').style.display = 'none';
+        document.getElementById('ruletaBotonesInicio').style.display = 'flex';
+        document.getElementById('ruletaBotonesFinal').style.display = 'none';
+        document.getElementById('ruletaRondas').innerHTML = '';
+
+        const wheel = document.getElementById('ruletaWheel');
+        wheel.style.transition = 'none';
+        wheel.style.transform = 'rotate(0deg)';
+        ruletaRotacionAcumulada = 0;
+
+        const btnGirar = document.getElementById('btnGirarRonda');
+        btnGirar.style.display = 'inline-block';
+        btnGirar.disabled = false;
+        document.getElementById('btnCancelarRuletaEnCurso').style.display = 'inline-block';
+
+        ruletaGanadorFinal = null;
+        ruletaRondasResultado = [];
+        ruletaActivosPartida = [];
+        ruletaTallyPartida = {};
+
+        document.getElementById('modalRuleta').classList.add('active');
+    }
+
+    function cerrarModalRuleta() {
+        document.getElementById('modalRuleta').classList.remove('active');
+    }
+
+    function iniciarRuleta() {
+        const activos = equipo.filter(nombre => document.getElementById(`ruletaChk_${nombre}`)?.checked);
+        if (activos.length < 2) {
+            alert('Selecciona al menos 2 personas para poder jugar.');
+            return;
+        }
+
+        ruletaActivosPartida = activos;
+        ruletaTallyPartida = {};
+        activos.forEach(n => ruletaTallyPartida[n] = 0);
+        ruletaRondasResultado = [];
+
+        dibujarRuedaRuleta(activos);
+
+        // Se oculta la selección de participantes una vez que la partida ya empezó, para
+        // que no se pueda cambiar a mitad de juego.
+        document.getElementById('ruletaLabelCheckboxes').style.display = 'none';
+        document.getElementById('ruletaCheckboxes').style.display = 'none';
+        document.getElementById('ruletaBotonesInicio').style.display = 'none';
+        document.getElementById('ruletaArea').style.display = 'block';
+
+        const btn = document.getElementById('btnGirarRonda');
+        btn.disabled = false;
+        btn.innerText = '🎲 Girar Ronda 1';
+    }
+
+    function dibujarRuedaRuleta(activos) {
+        const n = activos.length;
+        const anguloPorSegmento = 360 / n;
+
+        // Fondo de la rueda: un gradiente cónico con un color sólido por persona (el mismo
+        // color fijo que usan en el gráfico de gastos, para que sea consistente en toda la app).
+        let gradient = 'conic-gradient(';
+        activos.forEach((nombre, i) => {
+            const color = COLORES_PERSONA[nombre] || '#888';
+            const inicio = (i * anguloPorSegmento).toFixed(2);
+            const fin = ((i + 1) * anguloPorSegmento).toFixed(2);
+            gradient += `${color} ${inicio}deg ${fin}deg${i < n - 1 ? ', ' : ''}`;
+        });
+        gradient += ')';
+        document.getElementById('ruletaWheel').style.background = gradient;
+
+        // Etiquetas con el nombre de cada quien, ubicadas en el centro de su segmento,
+        // siempre en posición horizontal legible (no giran de lado con la rueda).
+        const labelsCont = document.getElementById('ruletaWheelLabels');
+        labelsCont.innerHTML = activos.map((nombre, i) => {
+            const anguloMedio = anguloPorSegmento * i + anguloPorSegmento / 2;
+            return `
+                <div style="position:absolute; top:50%; left:50%; width:0; height:0; transform: rotate(${anguloMedio}deg);">
+                    <div style="position:absolute; top:-88px; left:-40px; width:80px; text-align:center; transform: rotate(${-anguloMedio}deg); font-size:11px; font-weight:800; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.8);">
+                        ${nombre}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function girarRondaManual() {
+        const activos = ruletaActivosPartida;
+        const n = activos.length;
+        const anguloPorSegmento = 360 / n;
+
+        document.getElementById('btnGirarRonda').disabled = true;
+
+        // El ganador de esta ronda se decide AQUÍ, con Math.random() con el mismo peso para
+        // cada persona activa. La animación de la rueda gira hacia ese resultado ya decidido
+        // — no al revés — para que sea imposible que la animación "elija" algo distinto.
+        const idxGanador = Math.floor(Math.random() * n);
+        const ganadorRonda = activos[idxGanador];
+
+        const anguloCentroSegmento = idxGanador * anguloPorSegmento + anguloPorSegmento / 2;
+        const vueltasExtra = 4 + Math.floor(Math.random() * 3); // 4 a 6 vueltas completas, al azar
+        // Pequeño desvío aleatorio dentro del propio segmento, para que no caiga siempre
+        // clavado en el centro exacto (se ve más natural / random).
+        const jitter = (Math.random() - 0.5) * (anguloPorSegmento * 0.5);
+
+        // FIX: antes se sumaba la rotación asumiendo que la rueda había quedado exactamente
+        // en 0° tras la ronda anterior, pero el "jitter" de esa ronda dejaba un pequeño
+        // sobrante que nunca se cancelaba — y ese sobrante se iba acumulando ronda tras
+        // ronda, hasta que la rueda terminaba cayendo visualmente en el segmento vecino al
+        // que realmente se había sorteado. Ahora se calcula cuánto falta girar DESDE LA
+        // POSICIÓN REAL actual de la rueda (no desde una posición ideal asumida), así el
+        // desvío de rondas anteriores nunca se arrastra a la siguiente.
+        const rotacionActualMod = ((ruletaRotacionAcumulada % 360) + 360) % 360;
+        const objetivoMod = ((360 - anguloCentroSegmento) % 360 + 360) % 360;
+        let deltaNecesario = objetivoMod - rotacionActualMod;
+        if (deltaNecesario < 0) deltaNecesario += 360;
+
+        ruletaRotacionAcumulada += vueltasExtra * 360 + deltaNecesario + jitter;
+
+        const wheel = document.getElementById('ruletaWheel');
+        wheel.style.transition = 'transform 4s cubic-bezier(0.12, 0.65, 0.15, 1)';
+        wheel.style.transform = `rotate(${ruletaRotacionAcumulada}deg)`;
+
+        setTimeout(() => {
+            ruletaTallyPartida[ganadorRonda]++;
+            ruletaRondasResultado.push(ganadorRonda);
+
+            document.getElementById('ruletaRondas').innerHTML = ruletaRondasResultado
+                .map((g, i) => `<span>Ronda ${i + 1}: <strong style="color:var(--gold);">${g}</strong></span>`)
+                .join('');
+
+            const ganadorFinal = Object.keys(ruletaTallyPartida).find(n => ruletaTallyPartida[n] >= 2);
+            if (ganadorFinal) {
+                finalizarRuleta(ganadorFinal, ruletaTallyPartida);
+            } else {
+                const btn = document.getElementById('btnGirarRonda');
+                btn.disabled = false;
+                btn.innerText = `🎲 Girar Ronda ${ruletaRondasResultado.length + 1}`;
+            }
+        }, 4150); // un poco más que la duración de la animación (4s), para que termine de girar
+    }
+
+    function finalizarRuleta(ganador, tally) {
+        ruletaGanadorFinal = ganador;
+        document.getElementById('btnGirarRonda').style.display = 'none';
+        document.getElementById('btnCancelarRuletaEnCurso').style.display = 'none';
+        const resumen = document.getElementById('ruletaResultadoFinal');
+        resumen.style.display = 'block';
+        resumen.innerHTML = `🏆 <span style="color:var(--gold);">${ganador}</span> le toca poner hoy (ganó ${tally[ganador]} de ${ruletaRondasResultado.length} rondas)`;
+        document.getElementById('ruletaBotonesFinal').style.display = 'flex';
+    }
+
+    function aplicarResultadoRuleta() {
+        if (!ruletaGanadorFinal) { cerrarModalRuleta(); return; }
+
+        const personaOriginal = equipo[estado.turnoIndex];
+        const ganador = ruletaGanadorFinal;
+
+        // Si el ganador ya era quien tenía el turno asignado, no hay nada que intercambiar.
+        if (personaOriginal === ganador) {
+            cerrarModalRuleta();
+            return;
+        }
+
+        const idxActual = estado.turnoIndex;
+        const idxGanador = equipo.indexOf(ganador);
+        if (idxGanador === -1) { cerrarModalRuleta(); return; }
+
+        equipo[idxActual] = ganador;
+        equipo[idxGanador] = personaOriginal;
+
+        if (!Array.isArray(estado.saltosHistorial)) estado.saltosHistorial = [];
+        estado.saltosHistorial.push({
+            fecha: obtenerFechaFormateada(new Date()),
+            persona: personaOriginal,
+            motivo: '🎲 Ruleta (mejor de 3)',
+            detalle: `Resultado de la ruleta: ${ruletaRondasResultado.join(' → ')}`,
+            pasadoA: ganador
+        });
+
+        if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+        estado.rachas[personaOriginal] = 0;
+
+        const vecesGanador = ruletaRondasResultado.filter(g => g === ganador).length;
+        agregarNotificacion(`🎲 Ruleta de turno: ${ganador} le toca poner hoy (ganó ${vecesGanador} de ${ruletaRondasResultado.length} rondas).`);
+
+        cerrarModalRuleta();
         guardarEstadoFirebase();
     }
 
@@ -1481,18 +1914,30 @@
             if (saltosIndiv[nombre] > maxSaltos && saltosIndiv[nombre] > 0) { maxSaltos = saltosIndiv[nombre]; elFantasma = nombre; }
         });
 
-        document.getElementById('badgeCono').innerText = elCono;
-        document.getElementById('badgeAninado').innerText = elAninado;
-        document.getElementById('badgeAusente').innerText = elFantasma;
+        document.getElementById('badgeCono').innerHTML = elCono === "Nadie" ? elCono : `${elCono} 🥉`;
+        document.getElementById('badgeAninado').innerHTML = elAninado === "Nadie" ? elAninado : `${elAninado} 🥇`;
+        document.getElementById('badgeAusente').innerHTML = elFantasma === "Nadie" ? elFantasma : `${elFantasma} 🎖️`;
+        ganadoresDelMesActual = { cono: elCono, aninado: elAninado, ausente: elFantasma };
 
         const histContainer = document.getElementById('dashHistoricalWinners');
         histContainer.innerHTML = '';
         if (Array.isArray(estado.historicoGanadores) && estado.historicoGanadores.length > 0) {
-            estado.historicoGanadores.forEach(h => {
+            estado.historicoGanadores.forEach((h, idx) => {
+                const esUltimo = idx === estado.historicoGanadores.length - 1;
                 histContainer.innerHTML += `
-                    <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
-                        <span style="font-weight:bold; color:var(--gold);">${h.mes}</span>
-                        <small style="color:var(--muted); margin-top:2px;">💸 ${h.aninado} | 🤌 ${h.cono} | 👻 ${h.ausente}</small>
+                    <li style="display:flex; align-items:flex-start; gap:10px; padding-bottom: 14px; margin-bottom: 0; border-bottom: none; position: relative;">
+                        <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
+                            <div style="width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow: 0 0 6px var(--gold);"></div>
+                            ${!esUltimo ? `<div style="width:2px; flex:1; background:var(--border); margin-top:2px; min-height:32px;"></div>` : ''}
+                        </div>
+                        <div style="flex:1; min-width:0;">
+                            <span style="font-weight:bold; color:var(--gold); text-transform: capitalize;">🗓️ ${h.mes}</span>
+                            <div style="display:flex; flex-direction:column; gap:2px; margin-top:4px; font-size:11px; color:var(--muted);">
+                                <span>🥇 Billeteado: <strong style="color:var(--text);">${h.aninado}</strong></span>
+                                <span>🥉 Coño: <strong style="color:var(--text);">${h.cono}</strong></span>
+                                <span>🎖️ Ausente: <strong style="color:var(--text);">${h.ausente}</strong></span>
+                            </div>
+                        </div>
                     </li>`;
             });
         } else {
@@ -1529,10 +1974,14 @@
             }
 
             const estaAbierto = usuarioDesglosadoAbierto === nombre;
+            const racha = (estado.rachas && estado.rachas[nombre]) ? estado.rachas[nombre] : 0;
+            const badgeRacha = racha > 0
+                ? ` <span title="${racha} turno${racha === 1 ? '' : 's'} cumplido${racha === 1 ? '' : 's'} seguido${racha === 1 ? '' : 's'} sin saltarse" style="display:inline-flex; align-items:center; gap:2px; background: rgba(255,184,0,0.15); border: 1px solid var(--gold); color: var(--gold); font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 10px; vertical-align: middle;">🔥 ${racha}</span>`
+                : '';
             expList.innerHTML += `
                 <li style="margin-bottom: 6px;">
                     <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                        <span>${nombre}:</span> 
+                        <span>${nombre}:${badgeRacha}</span> 
                         <div>
                             <strong style="color:var(--gold);">$${valGasto.toFixed(2)}</strong> 
                             <button class="btn-mini" style="margin-left:6px;" onclick="toggleDesgloseUsuario('${nombre}')">
@@ -1595,15 +2044,17 @@
             do {
                 estado.turnoIndex = (estado.turnoIndex + 1) % equipo.length;
             } while (estado.vacaciones[equipo[estado.turnoIndex]]);
-        } 
-        else if (!nuevoEstado && estadoAnterior) {
-            const indexPersona = equipo.indexOf(nombre);
-            if (indexPersona !== -1) {
-                estado.turnoIndex = indexPersona;
-            }
         }
+        // FIX: se eliminó el "regreso automático del turno" que ocurría al desmarcar
+        // vacaciones. Antes, cada regreso forzaba el turno del día a esa persona sin memoria
+        // de otros cambios de vacaciones pendientes — si dos personas entraban y salían de
+        // vacaciones en cualquier orden, el turno terminaba en quien fuera el ÚLTIMO en
+        // regresar, no en el estado original correcto. Ahora, regresar de vacaciones solo
+        // la vuelve elegible para la próxima rotación normal, sin tocar el turno de hoy. Si
+        // de verdad se le quiere devolver el turno de HOY, se hace explícito desde el panel
+        // de administrador ("Forzar Posición Actual del Turno").
 
-        const msgAccion = nuevoEstado ? `🏖️ ${nombre} fue marcado en vacaciones.` : `💼 ${nombre} regresó al estado activo (Trabajando) correctamente.`;
+        const msgAccion = nuevoEstado ? `🏖️ ${nombre} fue marcado en vacaciones.` : `💼 ${nombre} regresó al estado activo (Trabajando).`;
         agregarNotificacion(msgAccion);
         guardarEstadoFirebase();
     }
@@ -1617,11 +2068,38 @@
         
         const personaActual = equipo[estado.turnoIndex];
         const gastoHoyPersonaActual = estado.gastos.find(g => g.persona === personaActual && g.fecha === hoyStr);
-        const yaCumplioHoy = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
+        const yaCumplioHoyReal = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
+        // En modo pruebas sin límite, la interfaz siempre actúa como si nadie hubiera
+        // cumplido hoy todavía — así los botones quedan habilitados sin importar cuántas
+        // veces ya se haya presionado "Turno Cumplido" hoy.
+        const yaCumplioHoy = MODO_PRUEBAS_SIN_LIMITE ? false : yaCumplioHoyReal;
 
         document.getElementById('btnSaltar').disabled = yaCumplioHoy;
         document.getElementById('btnCambiar').disabled = yaCumplioHoy;
         document.getElementById('btnAvanzar').disabled = yaCumplioHoy;
+        document.getElementById('btnRuleta').disabled = yaCumplioHoy;
+
+        // Calcula la fecha proyectada de cada posición (excluyendo la de hoy, i=0). Los que
+        // están activos consumen días hábiles en orden normal. Los que están en vacaciones
+        // NO consumen un día hábil real (se saltan en la rotación de verdad), así que se les
+        // proyecta la fecha como si quedaran al final de la fila, después de todos los activos.
+        const pendientes = [];
+        for (let i = 1; i < equipo.length; i++) {
+            const indexReal = (estado.turnoIndex + i) % equipo.length;
+            const nombreRef = equipo[indexReal];
+            const esVacacionRef = estado.vacaciones ? !!estado.vacaciones[nombreRef] : false;
+            pendientes.push({ indexReal, esVacacionRef });
+        }
+        const fechasProyectadas = {};
+        let contadorDias = 0;
+        pendientes.filter(p => !p.esVacacionRef).forEach(p => {
+            contadorDias++;
+            fechasProyectadas[p.indexReal] = obtenerFechaHabil(new Date(), contadorDias);
+        });
+        pendientes.filter(p => p.esVacacionRef).forEach(p => {
+            contadorDias++;
+            fechasProyectadas[p.indexReal] = obtenerFechaHabil(new Date(), contadorDias);
+        });
 
         for (let i = 0; i < equipo.length; i++) {
             const indexReal = (estado.turnoIndex + i) % equipo.length;
@@ -1635,7 +2113,8 @@
             let botonVacacionesExtra = '';
 
             if (estaEnVacaciones) {
-                badgeText = '🏖️ VACACIONES';
+                const fechaProyectada = fechasProyectadas[indexReal] || '';
+                badgeText = `🏖️ VACACIONES${fechaProyectada ? `<br><small style="font-size:8px; opacity:0.75; font-weight:600;">Le tocaría: ${fechaProyectada}</small>` : ''}`;
                 classMember = 'vacacion';
                 classBadge = 'vaca';
                 if (esElActual || !yaCumplioHoy) {
@@ -1653,7 +2132,7 @@
                     botonVacacionesExtra = `<button class="btn-vaca-today" onclick="confirmarCambioVacaciones('${nombre}', true)" title="Marcar vacaciones para hoy">Vacaciones</button>`;
                 }
             } else {
-                badgeText = obtenerFechaHabil(new Date(), i);
+                badgeText = fechasProyectadas[indexReal] || obtenerFechaHabil(new Date(), i);
                 classBadge = 'badge';
             }
 
@@ -1691,7 +2170,22 @@
 
     function cumplirTurno() {
         const hoyStr = obtenerFechaFormateada(new Date());
-        const persona = equipo[estado.turnoIndex];
+        let persona = equipo[estado.turnoIndex];
+
+        // En modo pruebas sin límite, no se asume que es para quien tiene el turno hoy —
+        // se pregunta libremente a nombre de quién se quiere registrar, para poder probar
+        // con cualquiera de los 4 las veces que se quiera.
+        if (MODO_PRUEBAS_SIN_LIMITE) {
+            const eleccion = prompt(`[Modo pruebas] ¿A nombre de quién quieres registrar el turno?\n(${equipo.join(', ')})`, persona);
+            if (eleccion === null) return; // canceló, no hace nada
+            const nombreLimpio = eleccion.trim();
+            if (!equipo.includes(nombreLimpio)) {
+                alert('Nombre no válido. Debe ser exactamente uno de: ' + equipo.join(', '));
+                return;
+            }
+            persona = nombreLimpio;
+        }
+
         const valor = prompt(`¿Cuánto gastó ${persona}? ($):`, "1.80");
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
@@ -1704,9 +2198,13 @@
             
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
+
+            if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
+            estado.rachas[persona] = (estado.rachas[persona] || 0) + 1;
             
             const detalleProducto = producto.trim() ? ` (${producto.trim()})` : '';
-            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!`);
+            const detalleRacha = estado.rachas[persona] > 1 ? ` 🔥 Racha de ${estado.rachas[persona]}!` : '';
+            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!${detalleRacha}`);
             guardarEstadoFirebase();
         }
     }
@@ -1761,9 +2259,9 @@
             });
         }
 
-        const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
-        const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
-        const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
+        const elCono = ganadoresDelMesActual.cono;
+        const elAninado = ganadoresDelMesActual.aninado;
+        const elAusente = ganadoresDelMesActual.ausente;
 
         let filasResumen = '';
         equipo.forEach(nombre => {
