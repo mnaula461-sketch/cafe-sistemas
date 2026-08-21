@@ -513,8 +513,6 @@
             padding: 10px; border-radius: 8px; font-size: 13px; outline: none; resize: vertical;
         }
         .modal-card textarea { min-height: 80px; }
-        #ruletaCheckboxes input[type="checkbox"] { width: auto !important; padding: 0 !important; accent-color: var(--gold); }
-        #ruletaCheckboxes label { display: flex !important; margin-top: 0 !important; font-size: 13px !important; color: var(--text) !important; }
         .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
         .modal-buttons button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; }
         .btn-modal-confirm { background: var(--gold); color: #000; }
@@ -568,7 +566,7 @@
     </div>
 </div>
 
-<!-- Modal de Ruleta de Turno (Mejor de 3) -->
+<!-- Modal de Ruleta de Turno (Mejor de 3, con rueda visual) -->
 <div class="modal-overlay" id="modalRuleta">
     <div class="modal-card" style="max-width: 420px;">
         <h3>🎲 Ruleta de Turno — Mejor de 3</h3>
@@ -814,10 +812,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    // IMPORTANTE: este archivo (el de pruebas/desarrollo) ahora apunta a un nodo DISTINTO
-    // ("cafe_sistemas_dev") al de producción ("cafe_sistemas_test"). Antes ambos apuntaban
-    // al mismo nodo, así que cualquier prueba aquí afectaba los datos reales. Empieza vacío
-    // la primera vez que lo abras — es normal, es un nodo nuevo.
     const dbRef = db.ref('cafe_sistemas_test');
 
     let equipo = ["Mauricio", "Fabricio", "Danny", "Sebastian"];
@@ -835,15 +829,6 @@
     // (Ver pasos: Canal > "..." > Workflows > plantilla "Post to a channel when a webhook request is received")
     // Déjalo como cadena vacía ("") para desactivar el envío a Teams sin quitar el código.
     const TEAMS_WEBHOOK_URL = "https://default0f90bb1ae5b24075b2623ec96b6678.be.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/02/workflows/2c1b77533e434043be7272cf1b931f7e/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=YUoPu5Ok3A2DaasTqlJ_HI5CF2QHHXeayRc8nX1FCy4";
-
-    // === MODO PRUEBAS SIN LÍMITE (solo en este archivo de pruebas) ===
-    // En true: los botones de Turno Cumplido / Saltar / Cambiar / Ruleta NUNCA se
-    // deshabilitan, aunque ya se haya "cumplido" hoy — puedes presionarlos las veces que
-    // quieras para probar. Cada clic sigue escribiendo de verdad en Firebase, con toda la
-    // misma lógica (historial, rachas, notificaciones, Teams) que en producción — lo único
-    // que cambia es que la interfaz no bloquea repetir la acción.
-    // Ponlo en false si alguna vez quieres que este archivo se comporte como el original.
-    const MODO_PRUEBAS_SIN_LIMITE = true;
 
     // Color fijo por persona (no por posición) — así el color siempre identifica a la
     // misma persona sin importar en qué lugar de la rotación esté.
@@ -864,10 +849,6 @@
     let miChart = null;
     let miChartProductos = null;
     let usuarioDesglosadoAbierto = null;
-    // Guarda los nombres LIMPIOS (sin emoji ni medalla) de los ganadores del mes en curso,
-    // calculados en calcularDashboard(). cerrarMes() lee de aquí en vez del texto de los
-    // badges, que ahora incluye emoji + medalla y ya no sirve como fuente de datos limpia.
-    let ganadoresDelMesActual = { cono: "Nadie", aninado: "Nadie", ausente: "Nadie" };
     let notifAbierto = false;
 
     let estado = {
@@ -877,7 +858,6 @@
         ultimoSaludoFecha: "",
         gastos: [],
         saltosHistorial: [],
-        rachas: { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
         vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
         historicoGanadores: [],
         notificaciones: []
@@ -951,6 +931,10 @@
         document.getElementById('adminInputFecha').value = obtenerFechaFormateada(new Date());
         document.getElementById('adminInputProducto').value = '';
 
+        // Los selects de posición se generan siempre desde el arreglo real "equipo", nunca
+        // fijos en el HTML, para que los nombres jamás se desincronicen del orden real
+        // (esto era un problema latente: antes los nombres estaban escritos a mano en el
+        // HTML y se desactualizaban si el orden del equipo cambiaba).
         const selTurno = document.getElementById('adminSelectTurnoIndex');
         selTurno.innerHTML = equipo.map((nombre, idx) => `<option value="${idx}">${nombre}</option>`).join('');
         selTurno.value = estado.turnoIndex;
@@ -992,7 +976,7 @@
         equipo[idx] = equipo[idxVecino];
         equipo[idxVecino] = temp;
 
-        const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
+        const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
         agregarNotificacion(`🔀 [Admin] Se reordenó la rotación${firmaAdmin}.`);
         guardarEstadoFirebase();
         renderizarListaReordenamiento();
@@ -1024,7 +1008,7 @@
         estado.gastos.push({ fecha: fecha, persona: persona, monto: monto, producto: producto });
         estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-        const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
+        const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
         const detalleProducto = producto ? ` - ${producto}` : '';
         agregarNotificacion(`🛠️ [Admin] Se agregó pago de $${monto.toFixed(2)} a ${persona} con fecha ${fecha}${detalleProducto}${firmaAdmin}.`);
         guardarEstadoFirebase();
@@ -1037,7 +1021,7 @@
         const nuevoIndex = parseInt(document.getElementById('adminSelectTurnoIndex').value);
         if (!isNaN(nuevoIndex) && nuevoIndex >= 0 && nuevoIndex < equipo.length) {
             estado.turnoIndex = nuevoIndex;
-            const firmaAdmin = adminUsuarioActual ? ` (por: ${adminUsuarioActual})` : '';
+            const firmaAdmin = adminUsuarioActual ? ` (por admin: ${adminUsuarioActual})` : '';
             agregarNotificacion(`🛠️ [Admin] Se cambió el turno activo a ${equipo[nuevoIndex]}${firmaAdmin}.`);
             guardarEstadoFirebase();
             alert(`✅ Turno cambiado a ${equipo[nuevoIndex]}.`);
@@ -1062,7 +1046,6 @@
                     ultimoSaludoFecha: "",
                     gastos: [],
                     saltosHistorial: [],
-                    rachas: { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
                     vacaciones: { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
                     historicoGanadores: [],
                     notificaciones: []
@@ -1127,7 +1110,6 @@
                 ultimoSaludoFecha: data.ultimoSaludoFecha ?? "",
                 gastos: data.gastos ? (Array.isArray(data.gastos) ? data.gastos : Object.values(data.gastos)) : [],
                 saltosHistorial: data.saltosHistorial ? (Array.isArray(data.saltosHistorial) ? data.saltosHistorial : Object.values(data.saltosHistorial)) : [],
-                rachas: data.rachas ?? { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 },
                 vacaciones: data.vacaciones ?? { Mauricio: false, Fabricio: false, Danny: false, Sebastian: false },
                 historicoGanadores: data.historicoGanadores ? (Array.isArray(data.historicoGanadores) ? data.historicoGanadores : Object.values(data.historicoGanadores)) : [],
                 notificaciones: data.notificaciones ? (Array.isArray(data.notificaciones) ? data.notificaciones : Object.values(data.notificaciones)) : []
@@ -1161,16 +1143,25 @@
             const responsableHoy = equipo[estado.turnoIndex];
 
             // FIX: antes se usaba una variable local (diaNotificadoCache) que se reiniciaba
-            // cada vez que se recargaba la página, así que el saludo se reenviaba una y otra
-            // vez. Ahora se guarda la fecha del último saludo en el propio estado de Firebase,
-            // así que sobrevive a recargas y solo se envía UNA vez por día real.
+            // cada vez que se recargaba la página, así que el saludo (y su copia a Teams)
+            // se reenviaba una y otra vez en cada refresh, acumulándose visiblemente en el
+            // panel de notificaciones. Ahora se guarda la fecha del último saludo en el
+            // propio estado de Firebase, así que sobrevive a recargas y solo se dispara
+            // UNA vez por día real, sin importar cuántas veces se abra la página.
             if (estado.ultimoSaludoFecha !== hoy) {
                 estado.ultimoSaludoFecha = hoy;
                 agregarNotificacion(`☕ ¡Buenos días! Hoy le toca poner el café a **${responsableHoy}**.`);
             }
         } else {
-            // FIX CRÍTICO (mismo bug del archivo original): ya no se sobrescribe la base
-            // cuando Firebase devuelve datos vacíos/nulos. Solo se avisa, nunca se escribe.
+            // FIX CRÍTICO: antes esta rama llamaba a guardarEstadoFirebase(), lo que
+            // SOBRESCRIBÍA toda la base de datos con el estado vacío por defecto cada vez
+            // que Firebase devolvía datos nulos (ej. un corte de red momentáneo, un problema
+            // de permisos temporal, o la primera conexión antes de que lleguen los datos
+            // reales). Esto podía borrar meses de historial sin que nadie tocara nada.
+            //
+            // Ahora, en vez de escribir, solo se avisa en pantalla y en consola. La base
+            // de datos NUNCA se sobrescribe sola — solo se puede reiniciar manualmente
+            // desde el botón de administrador (que pide usuario y contraseña dos veces).
             console.warn('[Firebase] La lectura llegó vacía/nula. NO se sobrescribe nada por seguridad.');
             const statusEl = document.getElementById('syncStatus');
             if (statusEl) statusEl.innerText = '🟡 Sin datos recibidos (revisa tu conexión)';
@@ -1187,8 +1178,11 @@
 
     function guardarEstadoFirebase() {
         // SEGUNDA CAPA DE PROTECCIÓN (además del fix del listener): nunca se guarda si el
-        // equipo no tiene exactamente 4 personas válidas. La ÚNICA forma de reiniciar la
-        // base a cero sigue siendo el botón de administrador, que no pasa por esta función.
+        // equipo no tiene exactamente 4 personas válidas. Un guardado legítimo SIEMPRE tiene
+        // los 4 integrantes; si llegara vacío o corrupto por cualquier motivo, se bloquea
+        // aquí también, en vez de escribirlo. La ÚNICA forma de reiniciar la base a cero
+        // sigue siendo el botón de administrador (reiniciarBaseDeDatosTotal), que no pasa
+        // por esta función.
         if (!Array.isArray(equipo) || equipo.length !== 4 || equipo.some(n => !n)) {
             console.error('[Firebase] Guardado BLOQUEADO: el equipo no tiene 4 integrantes válidos.', equipo);
             alert('⚠️ No se pudo guardar: hubo un problema con los datos del equipo. Nada se sobrescribió. Recarga la página e intenta de nuevo.');
@@ -1531,9 +1525,9 @@
     function cerrarMes() {
         const hoy = new Date();
         const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        const elCono = ganadoresDelMesActual.cono;
-        const elAninado = ganadoresDelMesActual.aninado;
-        const elAusente = ganadoresDelMesActual.ausente;
+        const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
+        const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
+        const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
 
         if (confirm(`¿Deseas guardar los ganadores del mes de ${mesNombre}?`)) {
             if (!estado.historicoGanadores) estado.historicoGanadores = [];
@@ -1602,9 +1596,6 @@
             detalle: detalle,
             pasadoA: miembroDestino
         });
-
-        if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
-        estado.rachas[personaActual] = 0;
 
         agregarNotificacion(`⚠️ Salto registrado (${tipoMotivo}): ${personaActual} le pasó a ${miembroDestino}.`);
         cerrarModalSalto();
@@ -1813,9 +1804,6 @@
             pasadoA: ganador
         });
 
-        if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
-        estado.rachas[personaOriginal] = 0;
-
         const vecesGanador = ruletaRondasResultado.filter(g => g === ganador).length;
         agregarNotificacion(`🎲 Ruleta de turno: ${ganador} le toca poner hoy (ganó ${vecesGanador} de ${ruletaRondasResultado.length} rondas).`);
 
@@ -1914,30 +1902,18 @@
             if (saltosIndiv[nombre] > maxSaltos && saltosIndiv[nombre] > 0) { maxSaltos = saltosIndiv[nombre]; elFantasma = nombre; }
         });
 
-        document.getElementById('badgeCono').innerHTML = elCono === "Nadie" ? elCono : `${elCono} 🥉`;
-        document.getElementById('badgeAninado').innerHTML = elAninado === "Nadie" ? elAninado : `${elAninado} 🥇`;
-        document.getElementById('badgeAusente').innerHTML = elFantasma === "Nadie" ? elFantasma : `${elFantasma} 🎖️`;
-        ganadoresDelMesActual = { cono: elCono, aninado: elAninado, ausente: elFantasma };
+        document.getElementById('badgeCono').innerText = elCono;
+        document.getElementById('badgeAninado').innerText = elAninado;
+        document.getElementById('badgeAusente').innerText = elFantasma;
 
         const histContainer = document.getElementById('dashHistoricalWinners');
         histContainer.innerHTML = '';
         if (Array.isArray(estado.historicoGanadores) && estado.historicoGanadores.length > 0) {
-            estado.historicoGanadores.forEach((h, idx) => {
-                const esUltimo = idx === estado.historicoGanadores.length - 1;
+            estado.historicoGanadores.forEach(h => {
                 histContainer.innerHTML += `
-                    <li style="display:flex; align-items:flex-start; gap:10px; padding-bottom: 14px; margin-bottom: 0; border-bottom: none; position: relative;">
-                        <div style="display:flex; flex-direction:column; align-items:center; flex-shrink:0;">
-                            <div style="width:10px; height:10px; border-radius:50%; background:var(--gold); box-shadow: 0 0 6px var(--gold);"></div>
-                            ${!esUltimo ? `<div style="width:2px; flex:1; background:var(--border); margin-top:2px; min-height:32px;"></div>` : ''}
-                        </div>
-                        <div style="flex:1; min-width:0;">
-                            <span style="font-weight:bold; color:var(--gold); text-transform: capitalize;">🗓️ ${h.mes}</span>
-                            <div style="display:flex; flex-direction:column; gap:2px; margin-top:4px; font-size:11px; color:var(--muted);">
-                                <span>🥇 Billeteado: <strong style="color:var(--text);">${h.aninado}</strong></span>
-                                <span>🥉 Coño: <strong style="color:var(--text);">${h.cono}</strong></span>
-                                <span>🎖️ Ausente: <strong style="color:var(--text);">${h.ausente}</strong></span>
-                            </div>
-                        </div>
+                    <li style="flex-direction: column; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 6px;">
+                        <span style="font-weight:bold; color:var(--gold);">${h.mes}</span>
+                        <small style="color:var(--muted); margin-top:2px;">💸 ${h.aninado} | 🤌 ${h.cono} | 👻 ${h.ausente}</small>
                     </li>`;
             });
         } else {
@@ -1974,14 +1950,10 @@
             }
 
             const estaAbierto = usuarioDesglosadoAbierto === nombre;
-            const racha = (estado.rachas && estado.rachas[nombre]) ? estado.rachas[nombre] : 0;
-            const badgeRacha = racha > 0
-                ? ` <span title="${racha} turno${racha === 1 ? '' : 's'} cumplido${racha === 1 ? '' : 's'} seguido${racha === 1 ? '' : 's'} sin saltarse" style="display:inline-flex; align-items:center; gap:2px; background: rgba(255,184,0,0.15); border: 1px solid var(--gold); color: var(--gold); font-size: 10px; font-weight: bold; padding: 1px 6px; border-radius: 10px; vertical-align: middle;">🔥 ${racha}</span>`
-                : '';
             expList.innerHTML += `
                 <li style="margin-bottom: 6px;">
                     <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                        <span>${nombre}:${badgeRacha}</span> 
+                        <span>${nombre}:</span> 
                         <div>
                             <strong style="color:var(--gold);">$${valGasto.toFixed(2)}</strong> 
                             <button class="btn-mini" style="margin-left:6px;" onclick="toggleDesgloseUsuario('${nombre}')">
@@ -2068,11 +2040,7 @@
         
         const personaActual = equipo[estado.turnoIndex];
         const gastoHoyPersonaActual = estado.gastos.find(g => g.persona === personaActual && g.fecha === hoyStr);
-        const yaCumplioHoyReal = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
-        // En modo pruebas sin límite, la interfaz siempre actúa como si nadie hubiera
-        // cumplido hoy todavía — así los botones quedan habilitados sin importar cuántas
-        // veces ya se haya presionado "Turno Cumplido" hoy.
-        const yaCumplioHoy = MODO_PRUEBAS_SIN_LIMITE ? false : yaCumplioHoyReal;
+        const yaCumplioHoy = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
 
         document.getElementById('btnSaltar').disabled = yaCumplioHoy;
         document.getElementById('btnCambiar').disabled = yaCumplioHoy;
@@ -2170,22 +2138,7 @@
 
     function cumplirTurno() {
         const hoyStr = obtenerFechaFormateada(new Date());
-        let persona = equipo[estado.turnoIndex];
-
-        // En modo pruebas sin límite, no se asume que es para quien tiene el turno hoy —
-        // se pregunta libremente a nombre de quién se quiere registrar, para poder probar
-        // con cualquiera de los 4 las veces que se quiera.
-        if (MODO_PRUEBAS_SIN_LIMITE) {
-            const eleccion = prompt(`[Modo pruebas] ¿A nombre de quién quieres registrar el turno?\n(${equipo.join(', ')})`, persona);
-            if (eleccion === null) return; // canceló, no hace nada
-            const nombreLimpio = eleccion.trim();
-            if (!equipo.includes(nombreLimpio)) {
-                alert('Nombre no válido. Debe ser exactamente uno de: ' + equipo.join(', '));
-                return;
-            }
-            persona = nombreLimpio;
-        }
-
+        const persona = equipo[estado.turnoIndex];
         const valor = prompt(`¿Cuánto gastó ${persona}? ($):`, "1.80");
         
         if (valor !== null && !isNaN(parseFloat(valor)) && parseFloat(valor) >= 0) {
@@ -2198,13 +2151,9 @@
             
             estado.ultimoEnCumplir = persona;
             estado.ultimaFechaCumplido = hoyStr;
-
-            if (!estado.rachas) estado.rachas = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
-            estado.rachas[persona] = (estado.rachas[persona] || 0) + 1;
             
             const detalleProducto = producto.trim() ? ` (${producto.trim()})` : '';
-            const detalleRacha = estado.rachas[persona] > 1 ? ` 🔥 Racha de ${estado.rachas[persona]}!` : '';
-            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!${detalleRacha}`);
+            agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!`);
             guardarEstadoFirebase();
         }
     }
@@ -2259,9 +2208,9 @@
             });
         }
 
-        const elCono = ganadoresDelMesActual.cono;
-        const elAninado = ganadoresDelMesActual.aninado;
-        const elAusente = ganadoresDelMesActual.ausente;
+        const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
+        const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
+        const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
 
         let filasResumen = '';
         equipo.forEach(nombre => {
