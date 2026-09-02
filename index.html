@@ -698,7 +698,8 @@
         <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Exportar Reporte PDF
     </button>
 
-    <p style="font-size: 12px; color: var(--muted); margin-bottom: 15px; font-weight: 700;" id="dashboardMonth"></p>
+    <p style="font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 700;" id="dashboardMonth"></p>
+    <select id="selectorMesDashboard" onchange="cambiarMesDashboard()" style="width:100%; margin-bottom:15px; padding:6px 8px; border-radius:8px; background:var(--inner); color:var(--text); border:1px solid var(--border); font-size:12px; font-weight:700;"></select>
 
     <div class="stat-card">
         <h4>📈 Comparativa de Gastos ($)</h4>
@@ -862,6 +863,62 @@
         historicoGanadores: [],
         notificaciones: []
     };
+
+    // === SELECTOR DE MES EN EL DASHBOARD ===
+    // Por defecto se muestra el mes actual real. Al elegir un mes anterior en el
+    // selector, todo el panel (gráficos, tablas de historial, proyección) se
+    // recalcula para ESE mes — nunca se borra ni se toca lo guardado en Firebase.
+    const hoyInicial = new Date();
+    let mesSeleccionado = hoyInicial.getMonth() + 1;
+    let anioSeleccionado = hoyInicial.getFullYear();
+
+    function obtenerMesesDisponibles() {
+        const vistos = new Set();
+        const meses = [];
+        const hoy = new Date();
+        const agregar = (anio, mes) => {
+            const clave = `${anio}-${mes}`;
+            if (!vistos.has(clave)) {
+                vistos.add(clave);
+                meses.push({ anio, mes });
+            }
+        };
+        agregar(hoy.getFullYear(), hoy.getMonth() + 1);
+        [estado.gastos, estado.saltosHistorial].forEach(lista => {
+            if (Array.isArray(lista)) {
+                lista.forEach(item => {
+                    if (item && item.fecha) {
+                        const p = item.fecha.split('-');
+                        const anio = parseInt(p[0]);
+                        const mes = parseInt(p[1]);
+                        if (anio && mes) agregar(anio, mes);
+                    }
+                });
+            }
+        });
+        meses.sort((a, b) => (b.anio - a.anio) || (b.mes - a.mes));
+        return meses;
+    }
+
+    function poblarSelectorMes() {
+        const sel = document.getElementById('selectorMesDashboard');
+        if (!sel) return;
+        const valorActual = `${anioSeleccionado}-${mesSeleccionado}`;
+        sel.innerHTML = obtenerMesesDisponibles().map(({ anio, mes }) => {
+            const nombreMes = new Date(anio, mes - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            return `<option value="${anio}-${mes}">${nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)}</option>`;
+        }).join('');
+        sel.value = valorActual;
+    }
+
+    function cambiarMesDashboard() {
+        const sel = document.getElementById('selectorMesDashboard');
+        if (!sel || !sel.value) return;
+        const [anio, mes] = sel.value.split('-').map(Number);
+        anioSeleccionado = anio;
+        mesSeleccionado = mes;
+        calcularDashboard();
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
         const temaGuardado = localStorage.getItem(THEME_KEY) || 'dark';
@@ -1812,9 +1869,11 @@
     }
 
     function calcularDashboard() {
+        poblarSelectorMes();
         const hoy = new Date();
-        const mesActual = hoy.getMonth() + 1;
-        const anioActual = hoy.getFullYear();
+        const mesActual = mesSeleccionado;
+        const anioActual = anioSeleccionado;
+        const esMesActualReal = (mesActual === hoy.getMonth() + 1) && (anioActual === hoy.getFullYear());
 
         let gastosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
@@ -1846,18 +1905,19 @@
                             const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
                             productosConteo[clave] = (productosConteo[clave] || 0) + 1;
                         }
+
+                        historyBody.innerHTML += `
+                            <tr>
+                                <td>${g.fecha}</td>
+                                <td>${g.persona}</td>
+                                <td>${g.producto ? g.producto : '<span style="color:var(--muted);">Sin especificar</span>'}</td>
+                                <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
+                                <td>
+                                    <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
+                                    <button class="btn-danger" onclick="eliminarGasto(${i})">🗑️</button>
+                                </td>
+                            </tr>`;
                     }
-                    historyBody.innerHTML += `
-                        <tr>
-                            <td>${g.fecha}</td>
-                            <td>${g.persona}</td>
-                            <td>${g.producto ? g.producto : '<span style="color:var(--muted);">Sin especificar</span>'}</td>
-                            <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
-                            <td>
-                                <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
-                                <button class="btn-danger" onclick="eliminarGasto(${i})">🗑️</button>
-                            </td>
-                        </tr>`;
                 }
             }
         }
@@ -1871,22 +1931,24 @@
                     const p = s.fecha.split('-');
                     if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
                         if (saltosIndiv[s.persona] !== undefined) saltosIndiv[s.persona] += 1;
+                        saltosBody.innerHTML += `
+                            <tr>
+                                <td>${s.fecha}</td>
+                                <td><strong>${s.persona}</strong></td>
+                                <td><span style="color:var(--gold); font-weight:bold;">${s.motivo}</span></td>
+                                <td>
+                                    <span title="${s.detalle}">${s.detalle.length > 30 ? s.detalle.substring(0, 30) + '...' : s.detalle}</span>
+                                    <button class="btn-danger" style="margin-left:4px; padding:2px 6px;" onclick="eliminarSaltoHistorial(${i})">🗑️</button>
+                                </td>
+                            </tr>`;
                     }
-                    saltosBody.innerHTML += `
-                        <tr>
-                            <td>${s.fecha}</td>
-                            <td><strong>${s.persona}</strong></td>
-                            <td><span style="color:var(--gold); font-weight:bold;">${s.motivo}</span></td>
-                            <td>
-                                <span title="${s.detalle}">${s.detalle.length > 30 ? s.detalle.substring(0, 30) + '...' : s.detalle}</span>
-                                <button class="btn-danger" style="margin-left:4px; padding:2px 6px;" onclick="eliminarSaltoHistorial(${i})">🗑️</button>
-                            </td>
-                        </tr>`;
                 }
             }
         }
 
-        document.getElementById('dashboardMonth').innerText = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        const fechaMesSeleccionado = new Date(anioActual, mesActual - 1, 1);
+        const nombreMesSel = fechaMesSeleccionado.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        document.getElementById('dashboardMonth').innerText = (esMesActualReal ? '📍 ' : '🕓 Historial: ') + nombreMesSel;
 
         let minGasto = Infinity, elCono = "Nadie";
         let maxGasto = -1, elAninado = "Nadie";
@@ -1923,8 +1985,8 @@
         const expList = document.getElementById('dashExpenseList');
         expList.innerHTML = '';
         const diasDelMes = new Date(anioActual, mesActual, 0).getDate();
-        const diaHoy = hoy.getDate();
-        const factorProyeccion = diaHoy > 0 ? (diasDelMes / diaHoy) : 1;
+        const diaHoy = esMesActualReal ? hoy.getDate() : diasDelMes;
+        const factorProyeccion = (esMesActualReal && diaHoy > 0) ? (diasDelMes / diaHoy) : 1;
 
         equipo.forEach(nombre => {
             const valGasto = gastosIndiv[nombre];
@@ -1974,7 +2036,9 @@
         });
 
         document.getElementById('dashTotalMonth').innerText = `Total Grupo: $${totalGeneralMes.toFixed(2)}`;
-        document.getElementById('dashProyeccionMonth').innerText = `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`;
+        document.getElementById('dashProyeccionMonth').innerText = esMesActualReal
+            ? `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`
+            : `Total del Mes: $${totalGeneralMes.toFixed(2)}`;
 
         renderGraficoChart(gastosIndiv);
         renderGraficoProductos(productosConteo);
