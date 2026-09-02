@@ -1580,8 +1580,7 @@
     }
 
     function cerrarMes() {
-        const hoy = new Date();
-        const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+        const mesNombre = new Date(anioSeleccionado, mesSeleccionado - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         const elCono = document.getElementById('badgeCono')?.innerText || "Nadie";
         const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
         const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
@@ -2241,14 +2240,14 @@
 
     function exportarPDF() {
         const hoy = new Date();
-        const mesNombre = hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        
+        const mesActual = mesSeleccionado;
+        const anioActual = anioSeleccionado;
+        const mesNombre = new Date(anioActual, mesActual - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+
         let gastosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let turnosIndiv = { Mauricio: 0, Fabricio: 0, Danny: 0, Sebastian: 0 };
         let totalGeneralMes = 0;
         let productosConteoPDF = {};
-        const mesActual = hoy.getMonth() + 1;
-        const anioActual = hoy.getFullYear();
 
         if (Array.isArray(estado.gastos)) {
             estado.gastos.forEach(g => {
@@ -2304,6 +2303,9 @@
         let filasHistorial = '';
         if (Array.isArray(estado.gastos) && estado.gastos.length > 0) {
             estado.gastos.forEach(g => {
+                if (!g || !g.fecha) return;
+                const p = g.fecha.split('-');
+                if (parseInt(p[1]) !== mesActual || parseInt(p[0]) !== anioActual) return;
                 filasHistorial += `
                     <tr>
                         <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; color: #5C5B82;">${g.fecha}</td>
@@ -2312,7 +2314,8 @@
                         <td style="padding: 8px 10px; border-bottom: 1px solid #D1CFE2; font-size: 11px; text-align: right; font-weight: bold; color: #D39E2A;">$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
                     </tr>`;
             });
-        } else {
+        }
+        if (!filasHistorial) {
             filasHistorial = `<tr><td colspan="4" style="padding: 12px; text-align: center; color: #5C5B82; font-size: 12px;">Sin registros en el historial este mes.</td></tr>`;
         }
 
