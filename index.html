@@ -1001,7 +1001,8 @@
         // (esto era un problema latente: antes los nombres estaban escritos a mano en el
         // HTML y se desactualizaban si el orden del equipo cambiaba).
         const selTurno = document.getElementById('adminSelectTurnoIndex');
-        selTurno.innerHTML = equipo.map((nombre, idx) => `<option value="${idx}">${nombre}</option>`).join('');
+        selTurno.innerHTML = equipo.map((nombre, idx) => idx).filter(idx => !(estado.activos && estado.activos[equipo[idx]] === false))
+            .map(idx => `<option value="${idx}">${equipo[idx]}</option>`).join('');
         selTurno.value = estado.turnoIndex;
 
         renderizarListaReordenamiento();
@@ -1014,7 +1015,7 @@
         if (!cont) return;
         // Se excluye SIEMPRE la posición de hoy (estado.turnoIndex) de esta lista — así es
         // imposible, incluso por error, cambiar quién le toca hoy desde esta herramienta.
-        const posiciones = equipo.map((n, idx) => idx).filter(idx => idx !== estado.turnoIndex);
+        const posiciones = equipo.map((n, idx) => idx).filter(idx => idx !== estado.turnoIndex && !(estado.activos && estado.activos[equipo[idx]] === false));
 
         cont.innerHTML = posiciones.map((idx, i) => {
             const esPrimero = i === 0;
@@ -1031,7 +1032,7 @@
     }
 
     function moverPosicionRotacion(idx, direccion) {
-        const posiciones = equipo.map((n, i) => i).filter(i => i !== estado.turnoIndex);
+        const posiciones = equipo.map((n, i) => i).filter(i => i !== estado.turnoIndex && !(estado.activos && estado.activos[equipo[i]] === false));
         const posEnLista = posiciones.indexOf(idx);
         const posVecina = posEnLista + direccion;
         if (posVecina < 0 || posVecina >= posiciones.length) return;
@@ -1531,7 +1532,7 @@
         render();
     }
 
-    function renderGraficoChart(datosGastos) {
+    function renderGraficoChart(datosGastos, nombres) {
         const canvasEl = document.getElementById('gastosChart');
         if (!canvasEl) return;
         const ctx = canvasEl.getContext('2d');
@@ -1543,7 +1544,8 @@
             miChart = null;
         }
 
-        const safeData = equipo.map(nombre => {
+        const listaNombres = nombres || equipo;
+        const safeData = listaNombres.map(nombre => {
             const val = datosGastos[nombre];
             return (typeof val === 'number' && !isNaN(val)) ? val : 0;
         });
@@ -1551,11 +1553,11 @@
         miChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: equipo,
+                labels: listaNombres,
                 datasets: [{
                     label: 'Gastos del Mes ($)',
                     data: safeData,
-                    backgroundColor: equipo.map(nombre => COLORES_PERSONA[nombre] || '#999'),
+                    backgroundColor: listaNombres.map(nombre => COLORES_PERSONA[nombre] || '#999'),
                     borderRadius: 6
                 }]
             },
@@ -1984,11 +1986,17 @@
         const nombreMesSel = fechaMesSeleccionado.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
         document.getElementById('dashboardMonth').innerText = (esMesActualReal ? '📍 ' : '🕓 Historial: ') + nombreMesSel;
 
+        // En el mes actual real, solo se consideran personas activas para gráficos y medallas
+        // (una persona desactivada no debería "ganar" nada ni aparecer con $0 en un mes que
+        // ya no participa). Al revisar un mes pasado, se muestran todos: si esa persona
+        // trabajó y gastó ese mes, su registro histórico se conserva y se sigue mostrando.
+        const nombresVisiblesGraficos = esMesActualReal ? obtenerEquipoActivo() : equipo;
+
         let minGasto = Infinity, elCono = "Nadie";
         let maxGasto = -1, elAninado = "Nadie";
         let maxSaltos = -1, elFantasma = "Nadie";
 
-        equipo.forEach(nombre => {
+        nombresVisiblesGraficos.forEach(nombre => {
             const prom = turnosIndiv[nombre] > 0 ? (gastosIndiv[nombre] / turnosIndiv[nombre]) : 0;
             if (turnosIndiv[nombre] > 0 && prom < minGasto) { 
                 minGasto = prom; 
@@ -2022,7 +2030,7 @@
         const diaHoy = esMesActualReal ? hoy.getDate() : diasDelMes;
         const factorProyeccion = (esMesActualReal && diaHoy > 0) ? (diasDelMes / diaHoy) : 1;
 
-        equipo.forEach(nombre => {
+        nombresVisiblesGraficos.forEach(nombre => {
             const valGasto = gastosIndiv[nombre];
             let filasTurnos = '';
             if (Array.isArray(estado.gastos)) {
@@ -2074,12 +2082,12 @@
             ? `Proyección Mes: ~$${(totalGeneralMes * factorProyeccion).toFixed(2)}`
             : `Total del Mes: $${totalGeneralMes.toFixed(2)}`;
 
-        renderGraficoChart(gastosIndiv);
+        renderGraficoChart(gastosIndiv, nombresVisiblesGraficos);
         renderGraficoProductos(productosConteo);
 
         const vacList = document.getElementById('dashVacacionesList');
         vacList.innerHTML = '';
-        equipo.forEach(nombre => {
+        obtenerEquipoActivo().forEach(nombre => {
             const estaDeVaca = estado.vacaciones ? estado.vacaciones[nombre] : false;
             vacList.innerHTML += `
                 <li>
@@ -2367,8 +2375,11 @@
         const elAninado = document.getElementById('badgeAninado')?.innerText || "Nadie";
         const elAusente = document.getElementById('badgeAusente')?.innerText || "Nadie";
 
+        const esMesActualRealPDF = (mesActual === hoy.getMonth() + 1) && (anioActual === hoy.getFullYear());
+        const nombresResumenPDF = esMesActualRealPDF ? obtenerEquipoActivo() : equipo;
+
         let filasResumen = '';
-        equipo.forEach(nombre => {
+        nombresResumenPDF.forEach(nombre => {
             filasResumen += `
                 <tr>
                     <td style="padding: 10px; border-bottom: 1px solid #D1CFE2; font-size: 13px; font-weight: 600; color: #1E1D45;">${nombre}</td>
