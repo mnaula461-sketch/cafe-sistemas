@@ -789,6 +789,9 @@
                 <button class="btn-action" id="btnAvanzar" onclick="cumplirTurno()">
                     <svg viewBox="0 0 24 24"><path d="M2 21h20v-2H2v2zM20 8h-2V5c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v2c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-2c0-1.1-.9-2-2-2zM8 5h8v3H8V5zm11 7c0 .55-.45 1-1 1s-1-.45-1-1v-1h2v1z"/></svg> Turno Cumplido
                 </button>
+                <button class="btn-secondary" id="btnSinCompra" onclick="registrarSinCompra()">
+                    <svg viewBox="0 0 24 24"><path d="M18.06 23h1.66c.84 0 1.53-.65 1.63-1.47L23 5.05h-5V1h-1.97v4.05h-4.97l.3 2.34C13.71 8.07 15.86 9.5 18.06 9.5V23zM6.04 5.5C3.9 5.5 2.14 7.16 2 9.25c-.16 2.38 1.53 4.33 3.5 4.7v4.05H4v2h6v-2H8.5v-4.05c1.97-.37 3.66-2.32 3.5-4.7C11.86 7.16 10.1 5.5 7.96 5.5H6.04z"/></svg> Ya Hay Algo (Sin Comprar)
+                </button>
                 <button class="btn-secondary" id="btnSaltar" onclick="abrirModalSalto()">
                     <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg> Saltar por Ausencia / Motivo
                 </button>
@@ -1251,7 +1254,7 @@
         document.getElementById('syncStatus').innerText = '🔴 Error de conexión';
     });
 
-    function guardarEstadoFirebase() {
+    function guardarEstadoFirebase(camposConfiables = []) {
         // SEGUNDA CAPA DE PROTECCIÓN (además del fix del listener): nunca se guarda si el
         // equipo no tiene exactamente 4 personas válidas. Un guardado legítimo SIEMPRE tiene
         // los 4 integrantes; si llegara vacío o corrupto por cualquier motivo, se bloquea
@@ -1263,11 +1266,33 @@
             alert('⚠️ No se pudo guardar: hubo un problema con los datos del equipo. Nada se sobrescribió. Recarga la página e intenta de nuevo.');
             return;
         }
-        const datosAGuardar = { ...estado, equipo: equipo };
-        dbRef.set(datosAGuardar);
+
+        // FIX: activos y vacaciones son decisiones deliberadas de administrador que deben
+        // "pegar" hasta que alguien las cambie a propósito. Antes, CUALQUIER guardado (incluso
+        // uno tan simple como completar un turno) reescribía Firebase con la copia local
+        // completa de estado — y si esta pestaña llevaba abierta un tiempo sin recibir la
+        // actualización en tiempo real (ej. una laptop en reposo todo el fin de semana), esa
+        // copia local estaba desactualizada y terminaba "revirtiendo" una desactivación
+        // reciente sin que nadie la tocara. Ahora, antes de guardar, se lee el valor más
+        // reciente de activos/vacaciones directamente desde Firebase (nunca desde la memoria
+        // local desactualizada), salvo el campo que la propia acción acaba de cambiar a
+        // propósito (ese sí se respeta desde la copia local, que es la más actual).
+        const camposAProteger = ['activos', 'vacaciones'].filter(c => !camposConfiables.includes(c));
+
+        Promise.all(camposAProteger.map(campo =>
+            dbRef.child(campo).once('value').then(snap => ({ campo, valor: snap.val() }))
+        )).then(resultados => {
+            resultados.forEach(({ campo, valor }) => {
+                if (valor) estado[campo] = valor;
+            });
+            dbRef.set({ ...estado, equipo: equipo });
+        }).catch(err => {
+            console.error('[Firebase] No se pudo verificar activos/vacaciones antes de guardar; se guarda con la copia local disponible:', err);
+            dbRef.set({ ...estado, equipo: equipo });
+        });
     }
 
-    function agregarNotificacion(texto) {
+    function agregarNotificacion(texto, camposConfiables = []) {
         if (!estado.notificaciones) estado.notificaciones = [];
         const horaActual = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         const nuevoId = Date.now();
@@ -1275,7 +1300,7 @@
         estado.notificaciones.unshift({ id: nuevoId, texto: texto, hora: horaActual, leido: false });
         if (estado.notificaciones.length > 15) estado.notificaciones.pop();
         
-        guardarEstadoFirebase();
+        guardarEstadoFirebase(camposConfiables);
         enviarNotificacionTeams(texto);
     }
 
@@ -1930,23 +1955,29 @@
                     const p = g.fecha.split('-');
                     if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
                         const montoVal = parseFloat(g.monto) || 0;
+                        const esSinCompra = !!g.sinCompra;
                         if (gastosIndiv[g.persona] !== undefined) {
                             gastosIndiv[g.persona] += montoVal;
-                            turnosIndiv[g.persona] += 1;
+                            // Un turno "sin compra" (ya había algo en la oficina) no cuenta como
+                            // turno pagado: no debe afectar el promedio de gasto ni las medallas.
+                            if (!esSinCompra) turnosIndiv[g.persona] += 1;
                         }
                         totalGeneralMes += montoVal;
 
-                        const nombreProducto = (g.producto || '').trim();
-                        if (nombreProducto) {
-                            const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
-                            productosConteo[clave] = (productosConteo[clave] || 0) + 1;
+                        // Tampoco cuenta como "producto comprado" — no se compró nada.
+                        if (!esSinCompra) {
+                            const nombreProducto = (g.producto || '').trim();
+                            if (nombreProducto) {
+                                const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
+                                productosConteo[clave] = (productosConteo[clave] || 0) + 1;
+                            }
                         }
 
                         historyBody.innerHTML += `
-                            <tr>
+                            <tr${esSinCompra ? ' style="opacity:0.75;"' : ''}>
                                 <td>${g.fecha}</td>
                                 <td>${g.persona}</td>
-                                <td>${g.producto ? g.producto : '<span style="color:var(--muted);">Sin especificar</span>'}</td>
+                                <td>${esSinCompra ? `♻️ <em>Sin compra — ${g.producto || 'ya había algo'}</em>` : (g.producto ? g.producto : '<span style="color:var(--muted);">Sin especificar</span>')}</td>
                                 <td>$${(parseFloat(g.monto) || 0).toFixed(2)}</td>
                                 <td>
                                     <button class="btn-mini" onclick="editarGastoHistorial(${i})">✏️</button>
@@ -2148,8 +2179,7 @@
         // de administrador ("Forzar Posición Actual del Turno").
 
         const msgAccion = nuevoEstado ? `🏖️ ${nombre} fue marcado en vacaciones.` : `💼 ${nombre} regresó al estado activo (Trabajando).`;
-        agregarNotificacion(msgAccion);
-        guardarEstadoFirebase();
+        agregarNotificacion(msgAccion, ['vacaciones']);
     }
 
     function confirmarCambioActivo(nombre, reactivar) {
@@ -2183,8 +2213,7 @@
         }
 
         const msgAccion = reactivar ? `↩️ ${nombre} fue reactivado.` : `🚫 ${nombre} fue desactivado.`;
-        agregarNotificacion(msgAccion);
-        guardarEstadoFirebase();
+        agregarNotificacion(msgAccion, ['activos']);
         render();
     }
 
@@ -2199,11 +2228,14 @@
         const personaActual = equipo[estado.turnoIndex];
         const gastoHoyPersonaActual = estado.gastos.find(g => g.persona === personaActual && g.fecha === hoyStr);
         const yaCumplioHoy = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
+        const fueSinCompra = !!(gastoHoyPersonaActual && gastoHoyPersonaActual.sinCompra);
 
         document.getElementById('btnSaltar').disabled = yaCumplioHoy;
         document.getElementById('btnCambiar').disabled = yaCumplioHoy;
         document.getElementById('btnAvanzar').disabled = yaCumplioHoy;
         document.getElementById('btnRuleta').disabled = yaCumplioHoy;
+        const btnSinCompraEl = document.getElementById('btnSinCompra');
+        if (btnSinCompraEl) btnSinCompraEl.disabled = yaCumplioHoy;
 
         // Calcula la fecha proyectada de cada posición (excluyendo la de hoy, i=0). Los que
         // están activos consumen días hábiles en orden normal. Los que están en vacaciones
@@ -2253,7 +2285,7 @@
             } else if (esElActual) {
                 if (yaCumplioHoy) {
                     classMember = 'completed';
-                    badgeText = '✅ Pagado hoy';
+                    badgeText = fueSinCompra ? '☕ Sin compra' : '✅ Pagado hoy';
                     classBadge = 'done';
                 } else {
                     classMember = 'active';
@@ -2285,7 +2317,11 @@
         }
 
         const resultBox = document.getElementById('resultBox');
-        if (yaCumplioHoy) {
+        if (yaCumplioHoy && fueSinCompra) {
+            resultBox.classList.add('completed-box');
+            document.getElementById('labelResponsable').innerText = "☕ Hoy no fue necesario comprar";
+            document.getElementById('todayResponsable').innerHTML = `Ya había algo en la oficina`;
+        } else if (yaCumplioHoy) {
             resultBox.classList.add('completed-box');
             document.getElementById('labelResponsable').innerText = "El café de hoy ya fue cubierto por:";
             document.getElementById('todayResponsable').innerHTML = `${personaActual} 🎉`;
@@ -2316,8 +2352,23 @@
             
             const detalleProducto = producto.trim() ? ` (${producto.trim()})` : '';
             agregarNotificacion(`☕ ¡${persona} cumplió su turno por $${parseFloat(valor).toFixed(2)}${detalleProducto}!`);
-            guardarEstadoFirebase();
         }
+    }
+
+    function registrarSinCompra() {
+        const hoyStr = obtenerFechaFormateada(new Date());
+        const persona = equipo[estado.turnoIndex];
+
+        if (!confirm(`¿Confirmas que hoy no fue necesario comprar nada (ya había algo en la oficina, ej. sobras de días anteriores)?\n\nEl turno de ${persona} quedará resuelto para hoy sin registrar ningún gasto, y mañana la rotación avanza con normalidad.`)) return;
+
+        if (!Array.isArray(estado.gastos)) estado.gastos = [];
+        estado.gastos.push({ fecha: hoyStr, persona: persona, monto: 0, producto: 'Ya había algo en la oficina', sinCompra: true });
+        estado.gastos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+        estado.ultimoEnCumplir = persona;
+        estado.ultimaFechaCumplido = hoyStr;
+
+        agregarNotificacion(`☕ Hoy no fue necesario comprar — ya había algo en la oficina. Turno de ${persona} resuelto sin gasto.`);
     }
 
     function intercambiarTurno() {
@@ -2355,16 +2406,19 @@
                     const p = g.fecha.split('-');
                     if (parseInt(p[1]) === mesActual && parseInt(p[0]) === anioActual) {
                         const m = parseFloat(g.monto) || 0;
+                        const esSinCompra = !!g.sinCompra;
                         if (gastosIndiv[g.persona] !== undefined) {
                             gastosIndiv[g.persona] += m;
-                            turnosIndiv[g.persona] += 1;
+                            if (!esSinCompra) turnosIndiv[g.persona] += 1;
                         }
                         totalGeneralMes += m;
 
-                        const nombreProducto = (g.producto || '').trim();
-                        if (nombreProducto) {
-                            const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
-                            productosConteoPDF[clave] = (productosConteoPDF[clave] || 0) + 1;
+                        if (!esSinCompra) {
+                            const nombreProducto = (g.producto || '').trim();
+                            if (nombreProducto) {
+                                const clave = nombreProducto.charAt(0).toUpperCase() + nombreProducto.slice(1).toLowerCase();
+                                productosConteoPDF[clave] = (productosConteoPDF[clave] || 0) + 1;
+                            }
                         }
                     }
                 }
