@@ -2242,7 +2242,15 @@
         
         const personaActual = equipo[estado.turnoIndex];
         const gastoHoyPersonaActual = estado.gastos.find(g => g.persona === personaActual && g.fecha === hoyStr);
-        const yaCumplioHoy = !!gastoHoyPersonaActual || (estado.ultimaFechaCumplido === hoyStr && estado.ultimoEnCumplir === personaActual);
+        // FIX: antes había un respaldo (estado.ultimaFechaCumplido === hoyStr && estado.
+        // ultimoEnCumplir === personaActual) para considerar el turno como cubierto. El
+        // problema: ultimoEnCumplir queda con el nombre de la última persona que compró de
+        // verdad y NUNCA se limpia — así que si más tarde el turno activo (por un ajuste de
+        // rotación o un "Cambiar Turno Posición") vuelve a coincidir con ese nombre viejo,
+        // este respaldo lo marcaba como "ya cubierto" sin que esa persona hubiera comprado
+        // nada hoy, bloqueando el botón de Turno Cumplido. Ahora la única fuente de verdad es
+        // que exista de verdad un gasto registrado hoy para quien tiene el turno.
+        const yaCumplioHoy = !!gastoHoyPersonaActual;
         const fueSinCompra = !!(gastoHoyPersonaActual && gastoHoyPersonaActual.sinCompra);
 
         document.getElementById('btnSaltar').disabled = yaCumplioHoy;
